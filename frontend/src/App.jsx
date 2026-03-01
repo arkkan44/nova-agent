@@ -15,7 +15,7 @@ Ton approche :
 - Tu guides vers l'expérience directe plutôt que vers les concepts
 - Tu rappelles que chaque être est déjà complet, déjà éveillé
 - Tu utilises parfois des métaphores et des images poétiques
-- Tu répondsen français, avec chaleur et authenticité
+- Tu réponds en français, avec chaleur et authenticité
 
 Commence toujours par accueillir la personne là où elle en est.`;
 
@@ -46,12 +46,43 @@ export default function App() {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const conversationHistory = useRef([]);
+  const playerRef = useRef(null);
 
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, streamText]);
+
+  useEffect(() => {
+    const tag = document.createElement("script");
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(tag);
+
+    window.onYouTubeIframeAPIReady = () => {
+      playerRef.current = new window.YT.Player("ytplayer", {
+        videoId: "52nCM9a7sAE",
+        playerVars: {
+          autoplay: 1,
+          mute: 1,
+          loop: 1,
+          playlist: "52nCM9a7sAE",
+          controls: 0,
+          showinfo: 0,
+          rel: 0,
+          modestbranding: 1,
+          playsinline: 1,
+        },
+        events: {
+          onReady: (e) => e.target.playVideo(),
+        },
+      });
+    };
+
+    return () => {
+      delete window.onYouTubeIframeAPIReady;
+    };
+  }, []);
 
   const sendMessage = async (text) => {
     const userMessage = text || input.trim();
@@ -61,7 +92,6 @@ export default function App() {
 
     const newUserMsg = { role: "user", content: userMessage };
     conversationHistory.current = [...conversationHistory.current, newUserMsg];
-
     setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
     setLoading(true);
     setStreamText("");
@@ -84,7 +114,6 @@ export default function App() {
         { role: "assistant", content: assistantText },
       ];
 
-      // Simulate streaming
       let i = 0;
       const interval = setInterval(() => {
         if (i <= assistantText.length) {
@@ -117,17 +146,13 @@ export default function App() {
   return (
     <div style={styles.root}>
       <style>{css}</style>
-      <script dangerouslySetInnerHTML={{__html: `
-        var tag = document.createElement('script');
-        tag.src = "https://www.youtube.com/iframe_api";
-        document.head.appendChild(tag);
-        function onYouTubeIframeAPIReady() {
-          new YT.Player('ytplayer', {
-            videoId: '52nCM9a7sAE',
-            playerVars: { autoplay: 1, mute: 1, loop: 1, playlist: '52nCM9a7sAE', controls: 0, showinfo: 0, rel: 0 },
-          });
-        }
-      `}} />
+
+      {/* Video Background */}
+      <div style={styles.videoBg}>
+        <div id="ytplayer" style={styles.videoIframe} />
+      </div>
+      <div style={styles.videoOverlay} />
+
       {/* Particles */}
       <div style={styles.particleContainer}>
         {PARTICLES.map((p) => (
@@ -146,17 +171,8 @@ export default function App() {
         ))}
       </div>
 
-    {/* Video Background */}
-      <div style={styles.videoBg}>
-        <div id="ytplayer" style={styles.videoIframe} />
-      </div>
-      <div style={styles.videoOverlay} />
-      {/* Overlay sombre pour lisibilité */}
-      <div style={styles.videoOverlay} />
-
       <div style={styles.container}>
-        {/* Header */}
-        <div style={styles.header} className={started ? "header-compact" : ""}>
+        <div style={styles.header}>
           <div style={styles.logoWrap}>
             <div style={styles.logoRing} className="ring-pulse" />
             <div style={styles.logoInner}>
@@ -176,7 +192,6 @@ export default function App() {
           {started && <h2 style={styles.titleSmall}>NOVA</h2>}
         </div>
 
-        {/* Suggestions */}
         {!started && (
           <div style={styles.suggestions}>
             {SUGGESTIONS.map((s, i) => (
@@ -187,7 +202,6 @@ export default function App() {
           </div>
         )}
 
-        {/* Messages */}
         {started && (
           <div style={styles.messages}>
             {messages.map((m, i) => (
@@ -232,7 +246,6 @@ export default function App() {
           </div>
         )}
 
-        {/* Input */}
         <div style={styles.inputArea}>
           <div style={styles.inputWrap} className="input-glow">
             <textarea
@@ -264,7 +277,7 @@ export default function App() {
 const styles = {
   root: {
     minHeight: "100vh",
-    background: "radial-gradient(ellipse at 20% 50%, #0d1b2a 0%, #050a0f 60%, #0a0514 100%)",
+    background: "#000",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -273,31 +286,33 @@ const styles = {
     overflow: "hidden",
     position: "relative",
   },
-  particleContainer: { position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 },
-  orb1: {
-    position: "fixed", top: "-10%", left: "-10%", width: 500, height: 500,
-    borderRadius: "50%", background: "radial-gradient(circle, rgba(139,90,200,0.12) 0%, transparent 70%)",
-    pointerEvents: "none", zIndex: 0,
+  videoBg: {
+    position: "fixed", inset: 0, zIndex: 0,
+    pointerEvents: "none", overflow: "hidden",
   },
-  orb2: {
-    position: "fixed", bottom: "-15%", right: "-10%", width: 600, height: 600,
-    borderRadius: "50%", background: "radial-gradient(circle, rgba(60,120,180,0.1) 0%, transparent 70%)",
-    pointerEvents: "none", zIndex: 0,
+  videoIframe: {
+    position: "absolute",
+    top: "50%", left: "50%",
+    transform: "translateX(-50%) translateY(-50%)",
+    width: "100vw", height: "56.25vw",
+    minHeight: "100vh", minWidth: "177.77vh",
+    border: "none",
   },
-  orb3: {
-    position: "fixed", top: "40%", left: "50%", transform: "translateX(-50%)", width: 800, height: 400,
-    borderRadius: "50%", background: "radial-gradient(circle, rgba(200,160,80,0.04) 0%, transparent 70%)",
-    pointerEvents: "none", zIndex: 0,
+  videoOverlay: {
+    position: "fixed", inset: 0, zIndex: 1,
+    background: "rgba(0,0,0,0.6)",
+    pointerEvents: "none",
   },
+  particleContainer: { position: "fixed", inset: 0, pointerEvents: "none", zIndex: 2 },
   container: {
-    position: "relative", zIndex: 1, width: "100%", maxWidth: 720,
+    position: "relative", zIndex: 3, width: "100%", maxWidth: 720,
     minHeight: "100vh", display: "flex", flexDirection: "column",
     alignItems: "center", padding: "40px 24px 24px",
     boxSizing: "border-box",
   },
   header: {
     display: "flex", flexDirection: "column", alignItems: "center",
-    textAlign: "center", marginBottom: 32, transition: "all 0.5s ease",
+    textAlign: "center", marginBottom: 32,
   },
   logoWrap: { position: "relative", width: 80, height: 80, marginBottom: 20 },
   logoRing: {
@@ -370,38 +385,13 @@ const styles = {
     fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center",
     transition: "all 0.3s ease", flexShrink: 0,
   },
-  videoBg: {
-    position: "fixed", inset: 0, zIndex: 0,
-    pointerEvents: "none", overflow: "hidden",
-  },
-  videoIframe: {
-    position: "absolute",
-    top: "50%", left: "50%",
-    transform: "translateX(-50%) translateY(-50%)",
-    width: "100vw", height: "56.25vw",
-    minHeight: "100vh", minWidth: "177.77vh",
-    border: "none",
-  },
-  videoOverlay: {
-    position: "fixed", inset: 0, zIndex: 0,
-    background: "rgba(0,0,0,0.55)",
-    pointerEvents: "none",
-  },
-```
-
-Sauvegarde, puis :
-```
-git add .
-git commit -m "video youtube en arriere plan"
-git push origin master
   hint: { textAlign: "center", fontSize: 11, color: "#4a4040", marginTop: 8, letterSpacing: 1 },
 };
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&display=swap');
-
-  * { box-sizing: border-box; }
-  
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body, #root { width: 100%; min-height: 100vh; }
   body { margin: 0; padding: 0; }
 
   .particle {
@@ -410,77 +400,48 @@ const css = `
     border-radius: 50%;
     animation: float linear infinite;
   }
-
   @keyframes float {
     0% { transform: translateY(0px) translateX(0px); opacity: 0; }
     10% { opacity: 1; }
     90% { opacity: 0.5; }
     100% { transform: translateY(-100px) translateX(30px); opacity: 0; }
   }
-
-  .ring-pulse {
-    animation: ringPulse 3s ease-in-out infinite;
-  }
+  .ring-pulse { animation: ringPulse 3s ease-in-out infinite; }
   @keyframes ringPulse {
     0%, 100% { transform: scale(1); opacity: 0.5; box-shadow: 0 0 0 0 rgba(200,160,80,0); }
     50% { transform: scale(1.08); opacity: 1; box-shadow: 0 0 20px 4px rgba(200,160,80,0.2); }
   }
-
-  .orb {
-    animation: orbFloat 12s ease-in-out infinite alternate;
-  }
-  @keyframes orbFloat {
-    from { transform: translateY(0px); }
-    to { transform: translateY(30px); }
-  }
-
   .suggestion-btn:hover {
     background: rgba(200,160,80,0.12) !important;
     border-color: rgba(200,160,80,0.5) !important;
     transform: translateY(-2px);
   }
-
   .send-btn:hover:not(:disabled) {
     background: radial-gradient(circle, rgba(200,160,80,0.5) 0%, rgba(139,90,200,0.4) 100%) !important;
     transform: scale(1.1);
   }
-
   .input-glow:focus-within {
     border-color: rgba(200,160,80,0.4) !important;
     box-shadow: 0 0 24px rgba(200,160,80,0.1);
   }
-
-  .msg-fade-in {
-    animation: fadeIn 0.4s ease-out;
-  }
+  .msg-fade-in { animation: fadeIn 0.4s ease-out; }
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
   }
-
   .dot {
     width: 6px; height: 6px; border-radius: 50%;
-    background: #c8a050;
-    display: inline-block;
+    background: #c8a050; display: inline-block;
     animation: dotPulse 1.2s ease-in-out infinite;
   }
   @keyframes dotPulse {
     0%, 100% { opacity: 0.3; transform: scale(0.8); }
     50% { opacity: 1; transform: scale(1.2); }
   }
-
-  .cursor-blink {
-    animation: blink 0.8s step-end infinite;
-    color: #c8a050;
-  }
-  @keyframes blink {
-    from, to { opacity: 1; }
-    50% { opacity: 0; }
-  }
-
+  .cursor-blink { animation: blink 0.8s step-end infinite; color: #c8a050; }
+  @keyframes blink { from, to { opacity: 1; } 50% { opacity: 0; } }
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(200,160,80,0.3); border-radius: 2px; }
-
   textarea::placeholder { color: rgba(160,144,128,0.5); }
 `;
