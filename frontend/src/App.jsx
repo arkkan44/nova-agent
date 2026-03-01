@@ -136,10 +136,17 @@ export default function App() {
         ))}
       </div>
 
-      {/* Orbs */}
-      <div style={styles.orb1} className="orb" />
-      <div style={styles.orb2} className="orb" />
-      <div style={styles.orb3} className="orb" />
+    {/* Video Background */}
+      <div style={styles.videoBg}>
+        <iframe
+          style={styles.videoIframe}
+          src="https://www.youtube.com/embed/52nCM9a7sAE?autoplay=1&mute=1&loop=1&playlist=52nCM9a7sAE&controls=0&showinfo=0&rel=0&modestbranding=1"
+          allow="autoplay; encrypted-media"
+          allowFullScreen
+        />
+      </div>
+      {/* Overlay sombre pour lisibilité */}
+      <div style={styles.videoOverlay} />
 
       <div style={styles.container}>
         {/* Header */}
@@ -357,6 +364,30 @@ const styles = {
     fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center",
     transition: "all 0.3s ease", flexShrink: 0,
   },
+  videoBg: {
+    position: "fixed", inset: 0, zIndex: 0,
+    pointerEvents: "none", overflow: "hidden",
+  },
+  videoIframe: {
+    position: "absolute",
+    top: "50%", left: "50%",
+    transform: "translateX(-50%) translateY(-50%)",
+    width: "100vw", height: "56.25vw",
+    minHeight: "100vh", minWidth: "177.77vh",
+    border: "none",
+  },
+  videoOverlay: {
+    position: "fixed", inset: 0, zIndex: 0,
+    background: "rgba(0,0,0,0.55)",
+    pointerEvents: "none",
+  },
+```
+
+Sauvegarde, puis :
+```
+git add .
+git commit -m "video youtube en arriere plan"
+git push origin master
   hint: { textAlign: "center", fontSize: 11, color: "#4a4040", marginTop: 8, letterSpacing: 1 },
 };
 
