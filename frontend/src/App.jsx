@@ -117,7 +117,17 @@ export default function App() {
   return (
     <div style={styles.root}>
       <style>{css}</style>
-
+      <script dangerouslySetInnerHTML={{__html: `
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        document.head.appendChild(tag);
+        function onYouTubeIframeAPIReady() {
+          new YT.Player('ytplayer', {
+            videoId: '52nCM9a7sAE',
+            playerVars: { autoplay: 1, mute: 1, loop: 1, playlist: '52nCM9a7sAE', controls: 0, showinfo: 0, rel: 0 },
+          });
+        }
+      `}} />
       {/* Particles */}
       <div style={styles.particleContainer}>
         {PARTICLES.map((p) => (
@@ -138,13 +148,9 @@ export default function App() {
 
     {/* Video Background */}
       <div style={styles.videoBg}>
-        <iframe
-          style={styles.videoIframe}
-          src="https://www.youtube.com/embed/52nCM9a7sAE?autoplay=1&mute=1&loop=1&playlist=52nCM9a7sAE&controls=0&showinfo=0&rel=0&modestbranding=1"
-          allow="autoplay; encrypted-media"
-          allowFullScreen
-        />
+        <div id="ytplayer" style={styles.videoIframe} />
       </div>
+      <div style={styles.videoOverlay} />
       {/* Overlay sombre pour lisibilité */}
       <div style={styles.videoOverlay} />
 
