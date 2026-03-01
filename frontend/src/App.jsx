@@ -67,7 +67,7 @@ export default function App() {
     setStreamText("");
 
     try {
-      const response = await fetch("http://localhost:3001/api/chat", {
+      const response = await fetch("https://nova-agent-production-8bcc.up.railway.app/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
