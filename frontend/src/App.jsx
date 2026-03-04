@@ -24,9 +24,9 @@ const PARTICLES = Array.from({ length: 20 }, (_, i) => ({
 }));
 
 const SUGGESTIONS = [
+  { text: "Je ne me sens pas bien, peux-tu m'aider ?", highlight: true },
   { text: "Qu'est-ce que les EMI révèlent sur la conscience ?", highlight: false },
   { text: "Comment apprendre de son état d'être pour agir ?", highlight: false },
-  { text: "Je ne me sens pas bien, peux-tu m'aider ?", highlight: true },
   { text: "Comment se préparer à la nouvelle ère du Verseau ?", highlight: false },
   { text: "S'éveiller oui et après ?", highlight: false },
   { text: "Comment développer son intuition ?", highlight: false },
@@ -421,6 +421,7 @@ const styles = {
   videoIframe: { position: "absolute", top: "50%", left: "50%", transform: "translateX(-50%) translateY(-50%)", width: "100vw", height: "56.25vw", minHeight: "100vh", minWidth: "177.77vh", border: "none" },
   videoOverlay: { position: "fixed", inset: 0, zIndex: 1, background: "rgba(0,0,0,0.75)", pointerEvents: "none" },
   particleContainer: { position: "fixed", inset: 0, pointerEvents: "none", zIndex: 2 },
+
   authBox: { position: "relative", zIndex: 10, display: "flex", flexDirection: "column", alignItems: "center", gap: 16, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(20px)", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 24, padding: "48px 40px", maxWidth: 400, width: "90%" },
   authTabs: { display: "flex", gap: 8, background: "rgba(255,255,255,0.05)", borderRadius: 30, padding: 4, width: "100%" },
   authTab: { flex: 1, padding: "8px 0", border: "none", borderRadius: 26, background: "transparent", color: "#a09080", cursor: "pointer", fontFamily: "inherit", fontSize: 13, letterSpacing: 1, transition: "all 0.3s" },
@@ -430,6 +431,7 @@ const styles = {
   authBtn: { width: "100%", background: "radial-gradient(circle, rgba(200,160,80,0.3) 0%, rgba(139,90,200,0.2) 100%)", border: "1px solid rgba(200,160,80,0.4)", borderRadius: 30, padding: "12px 0", color: "#d4a84b", fontFamily: "inherit", fontSize: 14, letterSpacing: 2, cursor: "pointer", transition: "all 0.3s" },
   forgotBtn: { background: "none", border: "none", color: "#706050", fontSize: 12, cursor: "pointer", fontFamily: "inherit", letterSpacing: 0.5, textDecoration: "underline", padding: 0, transition: "color 0.2s" },
   resetInfo: { fontSize: 13, color: "#a09080", textAlign: "center", lineHeight: 1.6, margin: 0 },
+
   sidebar: { position: "fixed", top: 0, left: 0, width: 300, height: "100vh", background: "rgba(5,5,10,0.97)", backdropFilter: "blur(20px)", borderRight: "1px solid rgba(200,160,80,0.15)", zIndex: 200, display: "flex", flexDirection: "column", transition: "transform 0.3s ease" },
   sidebarHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "24px 20px 16px" },
   sidebarTitle: { fontFamily: "'Cinzel', serif", fontSize: 14, letterSpacing: 4, color: "#d4a84b" },
@@ -447,8 +449,10 @@ const styles = {
   planBadge: { fontSize: 12, color: "#d4a84b", letterSpacing: 0.5 },
   logoutBtn: { background: "none", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 20, padding: "8px 16px", color: "#a09080", fontFamily: "inherit", fontSize: 12, cursor: "pointer", transition: "all 0.3s" },
   sidebarOverlay: { position: "fixed", inset: 0, zIndex: 150, background: "rgba(0,0,0,0.4)" },
+
   menuBtn: { position: "fixed", top: 20, left: 20, zIndex: 100, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 30, padding: "8px 14px", color: "#d4a84b", fontSize: 16, cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s" },
   homeBtnFixed: { position: "fixed", top: 20, right: 20, zIndex: 100, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 30, padding: "8px 18px", color: "#d4a84b", fontSize: 12, cursor: "pointer", fontFamily: "'Palatino Linotype', serif", letterSpacing: 1, transition: "all 0.3s" },
+
   container: { position: "relative", zIndex: 3, width: "100%", maxWidth: 720, minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 24px 24px", boxSizing: "border-box" },
   header: { display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", marginBottom: 32 },
   logoWrap: { position: "relative", width: 80, height: 80, marginBottom: 20 },
@@ -460,9 +464,11 @@ const styles = {
   subtitle: { fontSize: 13, letterSpacing: 4, color: "#b0a090", margin: "0 0 20px", textTransform: "uppercase" },
   desc: { fontSize: 15, lineHeight: 1.8, color: "#c8bcac", maxWidth: 500, margin: 0 },
   adminNotice: { background: "rgba(200,160,80,0.12)", border: "1px solid rgba(200,160,80,0.4)", borderRadius: 12, padding: "12px 20px", color: "#d4a84b", fontSize: 13, marginBottom: 16, letterSpacing: 0.5, whiteSpace: "pre-line", maxWidth: 640, width: "100%" },
+
   suggestions: { display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center", marginBottom: 32, maxWidth: 640 },
   suggestion: { background: "rgba(200,160,80,0.1)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 24, padding: "10px 18px", color: "#e8d8b8", fontSize: 13, cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s ease", letterSpacing: 0.5 },
-  suggestionHighlight: { background: "linear-gradient(135deg, rgba(200,160,80,0.3) 0%, rgba(180,130,50,0.2) 100%)", border: "1px solid rgba(200,160,80,0.7)", borderRadius: 24, padding: "10px 18px", color: "#f0d070", fontSize: 13, cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s ease", letterSpacing: 0.5, fontWeight: "500", boxShadow: "0 0 16px rgba(200,160,80,0.2)" },
+  suggestionHighlight: { background: "linear-gradient(135deg, #b8860b 0%, #c8a050 50%, #a0720a 100%)", border: "1px solid #d4a84b", borderRadius: 24, padding: "10px 22px", color: "#0a0800", fontSize: 13, cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s ease", letterSpacing: 0.5, fontWeight: "700", boxShadow: "0 0 24px rgba(200,160,80,0.6)", width: "100%" },
+
   messages: { flex: 1, width: "100%", overflowY: "auto", paddingBottom: 20, display: "flex", flexDirection: "column", gap: 20 },
   userBubble: { display: "flex", flexDirection: "column", alignItems: "flex-end" },
   aiBubble: { display: "flex", flexDirection: "column", alignItems: "flex-start" },
@@ -486,7 +492,7 @@ const css = `
   .ring-pulse { animation: ringPulse 3s ease-in-out infinite; }
   @keyframes ringPulse { 0%, 100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.08); opacity: 1; box-shadow: 0 0 20px 4px rgba(200,160,80,0.3); } }
   .suggestion-btn:hover { background: rgba(200,160,80,0.2) !important; border-color: rgba(200,160,80,0.6) !important; transform: translateY(-2px); }
-  .suggestion-highlight:hover { background: linear-gradient(135deg, rgba(200,160,80,0.5) 0%, rgba(180,130,50,0.4) 100%) !important; transform: translateY(-2px); box-shadow: 0 0 24px rgba(200,160,80,0.4) !important; }
+  .suggestion-highlight:hover { background: linear-gradient(135deg, #d4a84b 0%, #e8c060 50%, #b8860b 100%) !important; transform: translateY(-2px); box-shadow: 0 0 32px rgba(200,160,80,0.8) !important; }
   .home-btn:hover, .menu-btn:hover { background: rgba(200,160,80,0.15) !important; }
   .auth-btn:hover { background: radial-gradient(circle, rgba(200,160,80,0.5) 0%, rgba(139,90,200,0.4) 100%) !important; }
   .new-conv-btn:hover { background: rgba(200,160,80,0.2) !important; }
