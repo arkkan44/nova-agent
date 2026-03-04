@@ -34,6 +34,7 @@ Tu procèdes toujours en plusieurs étapes naturelles et fluides :
 - Tu évites les clichés New Age et le spiritual bypassing
 - Tu parles avec profondeur, chaleur sobre, précision
 - Tu réponds toujours en français`;
+
 const API = "https://nova-agent-production-8bcc.up.railway.app";
 const FREE_LIMIT = 10;
 
@@ -165,6 +166,15 @@ export default function App() {
       setEmailNotice("✦ Erreur de connexion.");
     }
     setSendingEmail(null);
+  };
+
+  const deleteConversation = async (e, convId) => {
+    e.stopPropagation();
+    if (!confirm("Supprimer cette conversation ?\nCette action est irréversible.")) return;
+    await supabase.from("messages").delete().eq("conversation_id", convId);
+    await supabase.from("conversations").delete().eq("id", convId);
+    if (currentConvId === convId) handleHome();
+    loadConversations();
   };
 
   const handleAuth = async () => {
@@ -299,7 +309,6 @@ export default function App() {
         <div style={styles.logoWrap}><div style={styles.logoRing} className="ring-pulse" /><div style={styles.logoInner}><span style={styles.logoSymbol}>☽✦☾</span></div></div>
         <h1 style={styles.title}>NOVA</h1>
         <p style={styles.subtitle}>Agent d'Éveil & de Réalisation de Soi</p>
-
         {resetMode ? (
           <>
             <p style={styles.resetInfo}>Entrez votre email pour recevoir un lien de réinitialisation.</p>
@@ -358,9 +367,14 @@ export default function App() {
                 <span style={styles.convTitle}>{c.title}</span>
                 <span style={styles.convDate}>{new Date(c.updated_at).toLocaleDateString("fr-FR")}</span>
               </div>
-              <button style={{ ...styles.emailBtn, opacity: sendingEmail === c.id ? 0.5 : 1 }} className="email-btn" onClick={(e) => handleSendSummaryEmail(e, c.id)} disabled={sendingEmail === c.id} title="Recevoir l'essence par email">
-                {sendingEmail === c.id ? "..." : "✉"}
-              </button>
+              <div style={styles.convActions}>
+                <button style={{ ...styles.emailBtn, opacity: sendingEmail === c.id ? 0.5 : 1 }} className="email-btn" onClick={(e) => handleSendSummaryEmail(e, c.id)} disabled={sendingEmail === c.id} title="Recevoir l'essence par email">
+                  {sendingEmail === c.id ? "…" : "✉"}
+                </button>
+                <button style={styles.deleteBtn} className="delete-btn" onClick={(e) => deleteConversation(e, c.id)} title="Supprimer cette conversation">
+                  ✕
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -386,12 +400,7 @@ export default function App() {
         {!started && (
           <div style={styles.suggestions}>
             {SUGGESTIONS.map((s, i) => (
-              <button
-                key={i}
-                style={s.highlight ? styles.suggestionHighlight : styles.suggestion}
-                className={s.highlight ? "suggestion-highlight" : "suggestion-btn"}
-                onClick={() => sendMessage(s.text)}
-              >
+              <button key={i} style={s.highlight ? styles.suggestionHighlight : styles.suggestion} className={s.highlight ? "suggestion-highlight" : "suggestion-btn"} onClick={() => sendMessage(s.text)}>
                 {s.text}
               </button>
             ))}
@@ -440,7 +449,6 @@ const styles = {
   videoIframe: { position: "absolute", top: "50%", left: "50%", transform: "translateX(-50%) translateY(-50%)", width: "100vw", height: "56.25vw", minHeight: "100vh", minWidth: "177.77vh", border: "none" },
   videoOverlay: { position: "fixed", inset: 0, zIndex: 1, background: "rgba(0,0,0,0.75)", pointerEvents: "none" },
   particleContainer: { position: "fixed", inset: 0, pointerEvents: "none", zIndex: 2 },
-
   authBox: { position: "relative", zIndex: 10, display: "flex", flexDirection: "column", alignItems: "center", gap: 16, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(20px)", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 24, padding: "48px 40px", maxWidth: 400, width: "90%" },
   authTabs: { display: "flex", gap: 8, background: "rgba(255,255,255,0.05)", borderRadius: 30, padding: 4, width: "100%" },
   authTab: { flex: 1, padding: "8px 0", border: "none", borderRadius: 26, background: "transparent", color: "#a09080", cursor: "pointer", fontFamily: "inherit", fontSize: 13, letterSpacing: 1, transition: "all 0.3s" },
@@ -450,7 +458,6 @@ const styles = {
   authBtn: { width: "100%", background: "radial-gradient(circle, rgba(200,160,80,0.3) 0%, rgba(139,90,200,0.2) 100%)", border: "1px solid rgba(200,160,80,0.4)", borderRadius: 30, padding: "12px 0", color: "#d4a84b", fontFamily: "inherit", fontSize: 14, letterSpacing: 2, cursor: "pointer", transition: "all 0.3s" },
   forgotBtn: { background: "none", border: "none", color: "#706050", fontSize: 12, cursor: "pointer", fontFamily: "inherit", letterSpacing: 0.5, textDecoration: "underline", padding: 0, transition: "color 0.2s" },
   resetInfo: { fontSize: 13, color: "#a09080", textAlign: "center", lineHeight: 1.6, margin: 0 },
-
   sidebar: { position: "fixed", top: 0, left: 0, width: 300, height: "100vh", background: "rgba(5,5,10,0.97)", backdropFilter: "blur(20px)", borderRight: "1px solid rgba(200,160,80,0.15)", zIndex: 200, display: "flex", flexDirection: "column", transition: "transform 0.3s ease" },
   sidebarHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "24px 20px 16px" },
   sidebarTitle: { fontFamily: "'Cinzel', serif", fontSize: 14, letterSpacing: 4, color: "#d4a84b" },
@@ -463,15 +470,15 @@ const styles = {
   convInfo: { display: "flex", flexDirection: "column", gap: 3, flex: 1, minWidth: 0 },
   convTitle: { fontSize: 13, lineHeight: 1.4, color: "#e8d8b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   convDate: { fontSize: 11, color: "#706050" },
-  emailBtn: { background: "rgba(200,160,80,0.08)", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 8, width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#d4a84b", fontSize: 14, flexShrink: 0, transition: "all 0.2s" },
+  convActions: { display: "flex", gap: 4, flexShrink: 0 },
+  emailBtn: { background: "rgba(200,160,80,0.08)", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 8, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#d4a84b", fontSize: 13, flexShrink: 0, transition: "all 0.2s" },
+  deleteBtn: { background: "rgba(200,60,60,0.08)", border: "1px solid rgba(200,60,60,0.2)", borderRadius: 8, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#c06060", fontSize: 11, flexShrink: 0, transition: "all 0.2s" },
   sidebarFooter: { padding: "16px 20px", borderTop: "1px solid rgba(200,160,80,0.1)", display: "flex", flexDirection: "column", gap: 10 },
   planBadge: { fontSize: 12, color: "#d4a84b", letterSpacing: 0.5 },
   logoutBtn: { background: "none", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 20, padding: "8px 16px", color: "#a09080", fontFamily: "inherit", fontSize: 12, cursor: "pointer", transition: "all 0.3s" },
   sidebarOverlay: { position: "fixed", inset: 0, zIndex: 150, background: "rgba(0,0,0,0.4)" },
-
   menuBtn: { position: "fixed", top: 20, left: 20, zIndex: 100, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 30, padding: "8px 14px", color: "#d4a84b", fontSize: 16, cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s" },
   homeBtnFixed: { position: "fixed", top: 20, right: 20, zIndex: 100, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 30, padding: "8px 18px", color: "#d4a84b", fontSize: 12, cursor: "pointer", fontFamily: "'Palatino Linotype', serif", letterSpacing: 1, transition: "all 0.3s" },
-
   container: { position: "relative", zIndex: 3, width: "100%", maxWidth: 720, minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 24px 24px", boxSizing: "border-box" },
   header: { display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", marginBottom: 32 },
   logoWrap: { position: "relative", width: 80, height: 80, marginBottom: 20 },
@@ -483,11 +490,9 @@ const styles = {
   subtitle: { fontSize: 13, letterSpacing: 4, color: "#b0a090", margin: "0 0 20px", textTransform: "uppercase" },
   desc: { fontSize: 15, lineHeight: 1.8, color: "#c8bcac", maxWidth: 500, margin: 0 },
   adminNotice: { background: "rgba(200,160,80,0.12)", border: "1px solid rgba(200,160,80,0.4)", borderRadius: 12, padding: "12px 20px", color: "#d4a84b", fontSize: 13, marginBottom: 16, letterSpacing: 0.5, whiteSpace: "pre-line", maxWidth: 640, width: "100%" },
-
   suggestions: { display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center", marginBottom: 32, maxWidth: 640 },
   suggestion: { background: "rgba(200,160,80,0.1)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 24, padding: "10px 18px", color: "#e8d8b8", fontSize: 13, cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s ease", letterSpacing: 0.5 },
   suggestionHighlight: { background: "linear-gradient(135deg, #b8860b 0%, #c8a050 50%, #a0720a 100%)", border: "1px solid #d4a84b", borderRadius: 24, padding: "10px 22px", color: "#0a0800", fontSize: 13, cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s ease", letterSpacing: 0.5, fontWeight: "700", boxShadow: "0 0 24px rgba(200,160,80,0.6)" },
-
   messages: { flex: 1, width: "100%", overflowY: "auto", paddingBottom: 20, display: "flex", flexDirection: "column", gap: 20 },
   userBubble: { display: "flex", flexDirection: "column", alignItems: "flex-end" },
   aiBubble: { display: "flex", flexDirection: "column", alignItems: "flex-start" },
@@ -517,6 +522,7 @@ const css = `
   .new-conv-btn:hover { background: rgba(200,160,80,0.2) !important; }
   .conv-item:hover { background: rgba(200,160,80,0.07) !important; }
   .email-btn:hover { background: rgba(200,160,80,0.25) !important; border-color: rgba(200,160,80,0.5) !important; transform: scale(1.1); }
+  .delete-btn:hover { background: rgba(200,60,60,0.25) !important; border-color: rgba(200,60,60,0.5) !important; transform: scale(1.1); }
   .send-btn:hover:not(:disabled) { transform: scale(1.1); }
   .input-glow:focus-within { border-color: rgba(200,160,80,0.6) !important; box-shadow: 0 0 24px rgba(200,160,80,0.15); }
   .msg-fade-in { animation: fadeIn 0.4s ease-out; }
