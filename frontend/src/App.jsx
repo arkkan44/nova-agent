@@ -24,12 +24,12 @@ const PARTICLES = Array.from({ length: 20 }, (_, i) => ({
 }));
 
 const SUGGESTIONS = [
-  "Qu'est-ce que les EMI révèlent sur la conscience ?",
-  "Comment apprendre de son état d'être pour agir ?",
-  "Je traverse une période difficile...",
-  "Comment se préparer à la nouvelle ère du Verseau ?",
-  "S'éveiller oui et après ?",
-  "Comment développer son intuition ?",
+  { text: "Qu'est-ce que les EMI révèlent sur la conscience ?", highlight: false },
+  { text: "Comment apprendre de son état d'être pour agir ?", highlight: false },
+  { text: "Je ne me sens pas bien, peux-tu m'aider ?", highlight: true },
+  { text: "Comment se préparer à la nouvelle ère du Verseau ?", highlight: false },
+  { text: "S'éveiller oui et après ?", highlight: false },
+  { text: "Comment développer son intuition ?", highlight: false },
 ];
 
 export default function App() {
@@ -39,6 +39,8 @@ export default function App() {
   const [authPassword, setAuthPassword] = useState("");
   const [authError, setAuthError] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
+  const [resetMode, setResetMode] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   const [conversations, setConversations] = useState([]);
   const [currentConvId, setCurrentConvId] = useState(null);
@@ -139,8 +141,7 @@ export default function App() {
         body: JSON.stringify({ conversation_id: convId, user_email: user.email }),
       });
       const data = await res.json();
-      if (data.success) setEmailNotice("✦ L'essence de cette conversation vous a été envoyée par email.");
-      else setEmailNotice("✦ Erreur lors de l'envoi. Réessayez.");
+      setEmailNotice(data.success ? "✦ L'essence de cette conversation vous a été envoyée par email." : "✦ Erreur lors de l'envoi. Réessayez.");
     } catch {
       setEmailNotice("✦ Erreur de connexion.");
     }
@@ -149,6 +150,15 @@ export default function App() {
 
   const handleAuth = async () => {
     setAuthError(""); setAuthLoading(true);
+    if (resetMode) {
+      const { error } = await supabase.auth.resetPasswordForEmail(authEmail, {
+        redirectTo: "https://nova.coeurandco.com",
+      });
+      if (error) setAuthError(error.message);
+      else setResetSent(true);
+      setAuthLoading(false);
+      return;
+    }
     if (authMode === "register") {
       const { error } = await supabase.auth.signUp({ email: authEmail, password: authPassword });
       if (error) setAuthError(error.message);
@@ -257,6 +267,7 @@ export default function App() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
 
+  // ─── ÉCRAN AUTH ──────────────────────────────────────────────────────────────
   if (!user) return (
     <div style={styles.root}>
       <style>{css}</style>
@@ -269,18 +280,41 @@ export default function App() {
         <div style={styles.logoWrap}><div style={styles.logoRing} className="ring-pulse" /><div style={styles.logoInner}><span style={styles.logoSymbol}>☽✦☾</span></div></div>
         <h1 style={styles.title}>NOVA</h1>
         <p style={styles.subtitle}>Agent d'Éveil & de Réalisation de Soi</p>
-        <div style={styles.authTabs}>
-          <button style={{ ...styles.authTab, ...(authMode === "login" ? styles.authTabActive : {}) }} onClick={() => { setAuthMode("login"); setAuthError(""); }}>Connexion</button>
-          <button style={{ ...styles.authTab, ...(authMode === "register" ? styles.authTabActive : {}) }} onClick={() => { setAuthMode("register"); setAuthError(""); }}>Inscription</button>
-        </div>
-        <input style={styles.authInput} type="email" placeholder="Email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} />
-        <input style={styles.authInput} type="password" placeholder="Mot de passe" value={authPassword} onChange={e => setAuthPassword(e.target.value)} onKeyDown={e => e.key === "Enter" && handleAuth()} />
-        {authError && <p style={styles.authError}>{authError}</p>}
-        <button style={styles.authBtn} className="auth-btn" onClick={handleAuth} disabled={authLoading}>{authLoading ? "..." : authMode === "login" ? "Se connecter" : "Créer mon compte"}</button>
+
+        {resetMode ? (
+          <>
+            <p style={styles.resetInfo}>Entrez votre email pour recevoir un lien de réinitialisation.</p>
+            {resetSent ? (
+              <p style={styles.authError}>✦ Email envoyé ! Vérifiez votre boîte mail.</p>
+            ) : (
+              <>
+                <input style={styles.authInput} type="email" placeholder="Votre email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} onKeyDown={e => e.key === "Enter" && handleAuth()} />
+                {authError && <p style={styles.authError}>{authError}</p>}
+                <button style={styles.authBtn} className="auth-btn" onClick={handleAuth} disabled={authLoading}>{authLoading ? "..." : "Envoyer le lien"}</button>
+              </>
+            )}
+            <button style={styles.forgotBtn} onClick={() => { setResetMode(false); setResetSent(false); setAuthError(""); }}>← Retour à la connexion</button>
+          </>
+        ) : (
+          <>
+            <div style={styles.authTabs}>
+              <button style={{ ...styles.authTab, ...(authMode === "login" ? styles.authTabActive : {}) }} onClick={() => { setAuthMode("login"); setAuthError(""); }}>Connexion</button>
+              <button style={{ ...styles.authTab, ...(authMode === "register" ? styles.authTabActive : {}) }} onClick={() => { setAuthMode("register"); setAuthError(""); }}>Inscription</button>
+            </div>
+            <input style={styles.authInput} type="email" placeholder="Email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} />
+            <input style={styles.authInput} type="password" placeholder="Mot de passe" value={authPassword} onChange={e => setAuthPassword(e.target.value)} onKeyDown={e => e.key === "Enter" && handleAuth()} />
+            {authError && <p style={styles.authError}>{authError}</p>}
+            <button style={styles.authBtn} className="auth-btn" onClick={handleAuth} disabled={authLoading}>{authLoading ? "..." : authMode === "login" ? "Se connecter" : "Créer mon compte"}</button>
+            {authMode === "login" && (
+              <button style={styles.forgotBtn} onClick={() => { setResetMode(true); setAuthError(""); }}>Mot de passe oublié ?</button>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
 
+  // ─── APP PRINCIPALE ──────────────────────────────────────────────────────────
   return (
     <div style={styles.root}>
       <style>{css}</style>
@@ -297,9 +331,7 @@ export default function App() {
           <button style={styles.sidebarClose} onClick={() => setSidebarOpen(false)}>✕</button>
         </div>
         <button style={styles.newConvBtn} className="new-conv-btn" onClick={() => { handleHome(); setSidebarOpen(false); }}>+ Nouvelle conversation</button>
-
         {emailNotice && <div style={styles.emailNotice}>{emailNotice}</div>}
-
         <div style={styles.convList}>
           {conversations.map(c => (
             <div key={c.id} style={{ ...styles.convItem, ...(c.id === currentConvId ? styles.convItemActive : {}) }} className="conv-item" onClick={() => loadConversation(c.id)}>
@@ -307,19 +339,12 @@ export default function App() {
                 <span style={styles.convTitle}>{c.title}</span>
                 <span style={styles.convDate}>{new Date(c.updated_at).toLocaleDateString("fr-FR")}</span>
               </div>
-              <button
-                style={{ ...styles.emailBtn, opacity: sendingEmail === c.id ? 0.5 : 1 }}
-                className="email-btn"
-                onClick={(e) => handleSendSummaryEmail(e, c.id)}
-                disabled={sendingEmail === c.id}
-                title="Recevoir l'essence de cette conversation par email"
-              >
+              <button style={{ ...styles.emailBtn, opacity: sendingEmail === c.id ? 0.5 : 1 }} className="email-btn" onClick={(e) => handleSendSummaryEmail(e, c.id)} disabled={sendingEmail === c.id} title="Recevoir l'essence par email">
                 {sendingEmail === c.id ? "..." : "✉"}
               </button>
             </div>
           ))}
         </div>
-
         <div style={styles.sidebarFooter}>
           <span style={styles.planBadge}>{subscription?.plan === "premium" ? "✦ Premium" : `Gratuit · ${FREE_LIMIT - (subscription?.messages_today || 0)} msg restants`}</span>
           <button style={styles.logoutBtn} onClick={handleLogout}>Déconnexion</button>
@@ -342,7 +367,14 @@ export default function App() {
         {!started && (
           <div style={styles.suggestions}>
             {SUGGESTIONS.map((s, i) => (
-              <button key={i} style={styles.suggestion} className="suggestion-btn" onClick={() => sendMessage(s)}>{s}</button>
+              <button
+                key={i}
+                style={s.highlight ? styles.suggestionHighlight : styles.suggestion}
+                className={s.highlight ? "suggestion-highlight" : "suggestion-btn"}
+                onClick={() => sendMessage(s.text)}
+              >
+                {s.text}
+              </button>
             ))}
           </div>
         )}
@@ -396,6 +428,8 @@ const styles = {
   authInput: { width: "100%", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(200,160,80,0.25)", borderRadius: 12, padding: "12px 16px", color: "#f0e8d8", fontFamily: "inherit", fontSize: 14, outline: "none", boxSizing: "border-box" },
   authError: { color: "#d4a84b", fontSize: 13, textAlign: "center", margin: 0 },
   authBtn: { width: "100%", background: "radial-gradient(circle, rgba(200,160,80,0.3) 0%, rgba(139,90,200,0.2) 100%)", border: "1px solid rgba(200,160,80,0.4)", borderRadius: 30, padding: "12px 0", color: "#d4a84b", fontFamily: "inherit", fontSize: 14, letterSpacing: 2, cursor: "pointer", transition: "all 0.3s" },
+  forgotBtn: { background: "none", border: "none", color: "#706050", fontSize: 12, cursor: "pointer", fontFamily: "inherit", letterSpacing: 0.5, textDecoration: "underline", padding: 0, transition: "color 0.2s" },
+  resetInfo: { fontSize: 13, color: "#a09080", textAlign: "center", lineHeight: 1.6, margin: 0 },
   sidebar: { position: "fixed", top: 0, left: 0, width: 300, height: "100vh", background: "rgba(5,5,10,0.97)", backdropFilter: "blur(20px)", borderRight: "1px solid rgba(200,160,80,0.15)", zIndex: 200, display: "flex", flexDirection: "column", transition: "transform 0.3s ease" },
   sidebarHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "24px 20px 16px" },
   sidebarTitle: { fontFamily: "'Cinzel', serif", fontSize: 14, letterSpacing: 4, color: "#d4a84b" },
@@ -428,6 +462,7 @@ const styles = {
   adminNotice: { background: "rgba(200,160,80,0.12)", border: "1px solid rgba(200,160,80,0.4)", borderRadius: 12, padding: "12px 20px", color: "#d4a84b", fontSize: 13, marginBottom: 16, letterSpacing: 0.5, whiteSpace: "pre-line", maxWidth: 640, width: "100%" },
   suggestions: { display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center", marginBottom: 32, maxWidth: 640 },
   suggestion: { background: "rgba(200,160,80,0.1)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 24, padding: "10px 18px", color: "#e8d8b8", fontSize: 13, cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s ease", letterSpacing: 0.5 },
+  suggestionHighlight: { background: "linear-gradient(135deg, rgba(200,160,80,0.3) 0%, rgba(180,130,50,0.2) 100%)", border: "1px solid rgba(200,160,80,0.7)", borderRadius: 24, padding: "10px 18px", color: "#f0d070", fontSize: 13, cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s ease", letterSpacing: 0.5, fontWeight: "500", boxShadow: "0 0 16px rgba(200,160,80,0.2)" },
   messages: { flex: 1, width: "100%", overflowY: "auto", paddingBottom: 20, display: "flex", flexDirection: "column", gap: 20 },
   userBubble: { display: "flex", flexDirection: "column", alignItems: "flex-end" },
   aiBubble: { display: "flex", flexDirection: "column", alignItems: "flex-start" },
@@ -451,6 +486,7 @@ const css = `
   .ring-pulse { animation: ringPulse 3s ease-in-out infinite; }
   @keyframes ringPulse { 0%, 100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.08); opacity: 1; box-shadow: 0 0 20px 4px rgba(200,160,80,0.3); } }
   .suggestion-btn:hover { background: rgba(200,160,80,0.2) !important; border-color: rgba(200,160,80,0.6) !important; transform: translateY(-2px); }
+  .suggestion-highlight:hover { background: linear-gradient(135deg, rgba(200,160,80,0.5) 0%, rgba(180,130,50,0.4) 100%) !important; transform: translateY(-2px); box-shadow: 0 0 24px rgba(200,160,80,0.4) !important; }
   .home-btn:hover, .menu-btn:hover { background: rgba(200,160,80,0.15) !important; }
   .auth-btn:hover { background: radial-gradient(circle, rgba(200,160,80,0.5) 0%, rgba(139,90,200,0.4) 100%) !important; }
   .new-conv-btn:hover { background: rgba(200,160,80,0.2) !important; }
