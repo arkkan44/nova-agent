@@ -31,11 +31,11 @@ const PARTICLES = Array.from({ length: 30 }, (_, i) => ({
 const SUGGESTIONS = [
   "S'éveiller, oui ! et après ?",
   "Comment développer son intuition ?",
-  "Qu'est-ce que les EMI révèlent sur notre conscience ?",
+  "Comment observer mes pensées sans m'y perdre ?",
+  "Qu'est-ce que les EMI révèlent sur la conscience ?",
   "Comment apprendre de son état d'être pour agir ?",
   "Je traverse une période difficile...",
   "Comment se préparer à la nouvelle ère du Verseau ?",
-  "Comment observer mes pensées sans m'y perdre ?",
 ];
 
 export default function App() {
@@ -69,6 +69,15 @@ export default function App() {
     };
     return () => { delete window.onYouTubeIframeAPIReady; };
   }, []);
+
+  const handleHome = () => {
+    setStarted(false);
+    setMessages([]);
+    setStreamText("");
+    setInput("");
+    setAdminNotice("");
+    conversationHistory.current = [];
+  };
 
   const sendMessage = async (text) => {
     const userMessage = text || input.trim();
@@ -197,7 +206,12 @@ export default function App() {
               <p style={styles.desc}>Explorez les enseignements des EMI, du channeling, des traditions spirituelles et de la sagesse universelle — un compagnon pour votre voyage intérieur.</p>
             </>
           )}
-          {started && <h2 style={styles.titleSmall}>NOVA</h2>}
+          {started && (
+            <div style={styles.topBar}>
+              <h2 style={styles.titleSmall}>NOVA</h2>
+              <button style={styles.homeBtn} className="home-btn" onClick={handleHome}>↩ Accueil</button>
+            </div>
+          )}
         </div>
 
         {/* Message admin */}
@@ -281,7 +295,9 @@ const styles = {
   logoInner: { position: "absolute", inset: 8, borderRadius: "50%", background: "radial-gradient(circle, rgba(139,90,200,0.3) 0%, rgba(200,160,80,0.15) 100%)", border: "1px solid rgba(200,160,80,0.3)", display: "flex", alignItems: "center", justifyContent: "center" },
   logoSymbol: { fontSize: 16, color: "#d4a84b", letterSpacing: 2 },
   title: { fontFamily: "'Cinzel', serif", fontSize: 48, fontWeight: 400, letterSpacing: 16, color: "#d4a84b", margin: "0 0 8px", textShadow: "0 0 40px rgba(200,160,80,0.6)" },
-  titleSmall: { fontFamily: "'Cinzel', serif", fontSize: 18, fontWeight: 400, letterSpacing: 10, color: "#d4a84b", margin: "8px 0 0" },
+  titleSmall: { fontFamily: "'Cinzel', serif", fontSize: 18, fontWeight: 400, letterSpacing: 10, color: "#d4a84b" },
+  topBar: { display: "flex", alignItems: "center", justifyContent: "center", gap: 20, position: "sticky", top: 0, zIndex: 10, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(10px)", padding: "10px 20px", borderRadius: 12, marginBottom: 16, border: "1px solid rgba(200,160,80,0.15)" },
+  homeBtn: { background: "rgba(200,160,80,0.1)", border: "1px solid rgba(200,160,80,0.3)", borderRadius: 20, padding: "6px 16px", color: "#d4a84b", fontSize: 12, cursor: "pointer", fontFamily: "inherit", letterSpacing: 1, transition: "all 0.3s ease" },
   subtitle: { fontSize: 13, letterSpacing: 4, color: "#b0a090", margin: "0 0 20px", textTransform: "uppercase" },
   desc: { fontSize: 15, lineHeight: 1.8, color: "#c8bcac", maxWidth: 500, margin: 0 },
   adminNotice: { background: "rgba(200,160,80,0.12)", border: "1px solid rgba(200,160,80,0.4)", borderRadius: 12, padding: "12px 20px", color: "#d4a84b", fontSize: 13, marginBottom: 16, letterSpacing: 0.5, whiteSpace: "pre-line", maxWidth: 640, width: "100%" },
@@ -310,6 +326,7 @@ const css = `
   .ring-pulse { animation: ringPulse 3s ease-in-out infinite; }
   @keyframes ringPulse { 0%, 100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.08); opacity: 1; box-shadow: 0 0 20px 4px rgba(200,160,80,0.3); } }
   .suggestion-btn:hover { background: rgba(200,160,80,0.2) !important; border-color: rgba(200,160,80,0.6) !important; transform: translateY(-2px); }
+  .home-btn:hover { background: rgba(200,160,80,0.2) !important; border-color: rgba(200,160,80,0.6) !important; }
   .send-btn:hover:not(:disabled) { transform: scale(1.1); }
   .input-glow:focus-within { border-color: rgba(200,160,80,0.6) !important; box-shadow: 0 0 24px rgba(200,160,80,0.15); }
   .msg-fade-in { animation: fadeIn 0.4s ease-out; }
