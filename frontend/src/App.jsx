@@ -502,9 +502,9 @@ const styles = {
   dots: { display: "flex", gap: 6, alignItems: "center", height: 20 },
   inputArea: { width: "100%", paddingTop: 20 },
   inputWrap: { display: "flex", alignItems: "flex-end", gap: 12, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 16, padding: "12px 16px" },
-  textarea: { flex: 1, background: "transparent", border: "none", outline: "none", color: "#f0e8d8", fontFamily: "inherit", fontSize: 15, lineHeight: 1.7, resize: "none", padding: 0 },
+  textarea: { flex: 1, background: "transparent", border: "none", outline: "none", color: "#ffffff", fontFamily: "inherit", fontSize: 15, lineHeight: 1.7, resize: "none", padding: 0 },
   sendBtn: { background: "radial-gradient(circle, rgba(200,160,80,0.4) 0%, rgba(139,90,200,0.3) 100%)", border: "1px solid rgba(200,160,80,0.5)", borderRadius: "50%", width: 40, height: 40, cursor: "pointer", color: "#d4a84b", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.3s ease", flexShrink: 0 },
-  hint: { textAlign: "center", fontSize: 11, color: "#706050", marginTop: 8, letterSpacing: 1 },
+  hint: { textAlign: "center", fontSize: 11, color: "#c8bcac", marginTop: 8, letterSpacing: 1 },
 };
 
 const css = `
@@ -531,7 +531,7 @@ const css = `
   @keyframes dotPulse { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
   .cursor-blink { animation: blink 0.8s step-end infinite; color: #d4a84b; }
   @keyframes blink { from, to { opacity: 1; } 50% { opacity: 0; } }
-  input::placeholder, textarea::placeholder { color: rgba(200,180,150,0.4); }
+  input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.45); }
   input:focus { border-color: rgba(200,160,80,0.5) !important; }
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
