@@ -29,13 +29,13 @@ const PARTICLES = Array.from({ length: 30 }, (_, i) => ({
 }));
 
 const SUGGESTIONS = [
+  "S'éveiller, oui ! et après ?",
+  "Comment développer son intuition ?",
+  "Comment observer mes pensées sans m'y perdre ?",
   "Qu'est-ce que les EMI révèlent sur la conscience ?",
   "Comment apprendre de son état d'être pour agir ?",
   "Je traverse une période difficile...",
   "Comment se préparer à la nouvelle ère du Verseau ?",
-  "S'éveiller oui et après ?",
-  "Comment développer son intuition ?",
-  "Comment observer mes pensées sans m'y perdre ?",
 ];
 
 export default function App() {
