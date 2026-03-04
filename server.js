@@ -20,7 +20,9 @@ const loadDirectives = () => {
     if (fs.existsSync(DIRECTIVES_FILE)) {
       return fs.readFileSync(DIRECTIVES_FILE, "utf8").trim();
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error("Erreur lecture directives:", e.message);
+  }
   return "";
 };
 
@@ -37,6 +39,9 @@ const saveDirectives = (directives) => {
 app.post("/api/chat", async (req, res) => {
   try {
     const { messages, system } = req.body;
+    if (!messages || !Array.isArray(messages)) {
+      return res.status(400).json({ error: "Messages invalides" });
+    }
     const directives = loadDirectives();
     let finalSystem = system;
     if (directives) {
@@ -50,9 +55,15 @@ app.post("/api/chat", async (req, res) => {
     });
     res.json(response);
   } catch (error) {
-    console.error("Erreur API:", error.message);
+    console.error("Erreur API Anthropic:", error.message);
     res.status(500).json({ error: "Erreur serveur" });
   }
+});
+
+// Route pour lire les directives
+app.get("/api/directives", (req, res) => {
+  const directives = loadDirectives();
+  res.json({ directives });
 });
 
 // Route pour ajouter une directive
@@ -65,31 +76,37 @@ app.post("/api/directives/add", (req, res) => {
     saveDirectives(updated);
     res.json({ success: true, directives: updated });
   } catch (e) {
+    console.error("Erreur ajout directive:", e.message);
     res.status(500).json({ error: "Erreur sauvegarde" });
   }
-});
-
-// Route pour lire les directives
-app.get("/api/directives", (req, res) => {
-  const directives = loadDirectives();
-  res.json({ directives });
-});
-
-// Route pour effacer toutes les directives
-app.delete("/api/directives", (req, res) => {
-  saveDirectives("");
-  res.json({ success: true });
 });
 
 // Route pour effacer une directive précise
 app.post("/api/directives/remove", (req, res) => {
   try {
     const { directive } = req.body;
+    if (!directive) return res.status(400).json({ error: "Directive manquante" });
     const current = loadDirectives();
     const lines = current.split("\n").filter(line => !line.includes(directive));
     saveDirectives(lines.join("\n").trim());
     res.json({ success: true });
   } catch (e) {
+    console.error("Erreur suppression directive:", e.message);
     res.status(500).json({ error: "Erreur suppression" });
   }
+});
+
+// Route pour effacer toutes les directives
+app.delete("/api/directives", (req, res) => {
+  try {
+    saveDirectives("");
+    res.json({ success: true });
+  } catch (e) {
+    console.error("Erreur effacement directives:", e.message);
+    res.status(500).json({ error: "Erreur effacement" });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Serveur NOVA actif sur http://localhost:${PORT}`);
 });
