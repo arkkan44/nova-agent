@@ -75,12 +75,21 @@ app.get("/api/directives", (req, res) => {
   res.json({ directives });
 });
 
-// Route pour effacer les directives
+// Route pour effacer toutes les directives
 app.delete("/api/directives", (req, res) => {
   saveDirectives("");
   res.json({ success: true });
 });
 
-app.listen(PORT, () => {
-  console.log(`Serveur NOVA actif sur http://localhost:${PORT}`);
+// Route pour effacer une directive précise
+app.post("/api/directives/remove", (req, res) => {
+  try {
+    const { directive } = req.body;
+    const current = loadDirectives();
+    const lines = current.split("\n").filter(line => !line.includes(directive));
+    saveDirectives(lines.join("\n").trim());
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: "Erreur suppression" });
+  }
 });

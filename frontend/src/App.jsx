@@ -94,6 +94,16 @@ export default function App() {
         setAdminNotice("✦ Toutes les directives ont été effacées.");
         return;
       }
+        if (cmd.toLowerCase().startsWith("efface la directive :")) {
+        const toRemove = cmd.replace(/efface la directive\s*:\s*/i, "").trim();
+        await fetch(`${API}/api/directives/remove`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ directive: toRemove }),
+        });
+        setAdminNotice("✦ Directive supprimée : « " + toRemove + " »");
+        return;
+      }
 
       // Ajouter une directive permanente
       const res = await fetch(`${API}/api/directives/add`, {
