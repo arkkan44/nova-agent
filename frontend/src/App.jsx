@@ -29,13 +29,13 @@ const PARTICLES = Array.from({ length: 30 }, (_, i) => ({
 }));
 
 const SUGGESTIONS = [
-  "S'éveiller, oui ! et après ?",
-  "Comment développer son intuition ?",
-  "Comment observer mes pensées sans m'y perdre ?",
   "Qu'est-ce que les EMI révèlent sur la conscience ?",
   "Comment apprendre de son état d'être pour agir ?",
   "Je traverse une période difficile...",
   "Comment se préparer à la nouvelle ère du Verseau ?",
+  "S'éveiller oui et après ?",
+  "Comment développer son intuition ?",
+  "Comment observer mes pensées sans m'y perdre ?",
 ];
 
 export default function App() {
@@ -85,12 +85,10 @@ export default function App() {
     setInput("");
     setAdminNotice("");
 
-    // Commandes secrètes admin
     const adminMatch = userMessage.match(/^fantomas a dit\s*:\s*(.+)/i);
     if (adminMatch) {
       const cmd = adminMatch[1].trim();
 
-      // Lister toutes les directives
       if (cmd.toLowerCase() === "liste les directives") {
         const res = await fetch(`${API}/api/directives`);
         const data = await res.json();
@@ -100,14 +98,12 @@ export default function App() {
         return;
       }
 
-      // Effacer toutes les directives
       if (cmd.toLowerCase() === "efface les directives") {
         await fetch(`${API}/api/directives`, { method: "DELETE" });
         setAdminNotice("✦ Toutes les directives ont été effacées.");
         return;
       }
 
-      // Effacer une directive précise
       if (cmd.toLowerCase().startsWith("efface la directive :")) {
         const toRemove = cmd.replace(/efface la directive\s*:\s*/i, "").trim();
         await fetch(`${API}/api/directives/remove`, {
@@ -119,18 +115,15 @@ export default function App() {
         return;
       }
 
-      // Ajouter une nouvelle directive permanente
       const res = await fetch(`${API}/api/directives/add`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ directive: cmd }),
       });
       const data = await res.json();
-      if (data.success) {
-        setAdminNotice("✦ Directive enregistrée définitivement :\n« " + cmd + " »");
-      } else {
-        setAdminNotice("✦ Erreur lors de l'enregistrement.");
-      }
+      setAdminNotice(data.success
+        ? "✦ Directive enregistrée définitivement :\n« " + cmd + " »"
+        : "✦ Erreur lors de l'enregistrement.");
       return;
     }
 
@@ -147,10 +140,8 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ system: BASE_SYSTEM_PROMPT, messages: conversationHistory.current }),
       });
-
       const data = await response.json();
       const assistantText = data.content?.map((b) => b.text || "").join("") || "Je suis là avec toi.";
-
       conversationHistory.current = [...conversationHistory.current, { role: "assistant", content: assistantText }];
 
       let i = 0;
@@ -191,6 +182,13 @@ export default function App() {
         ))}
       </div>
 
+      {/* Bouton accueil fixe — visible uniquement pendant une conversation */}
+      {started && (
+        <button style={styles.homeBtnFixed} className="home-btn" onClick={handleHome}>
+          ↩ Accueil
+        </button>
+      )}
+
       <div style={styles.container}>
 
         {/* Header */}
@@ -206,12 +204,7 @@ export default function App() {
               <p style={styles.desc}>Explorez les enseignements des EMI, du channeling, des traditions spirituelles et de la sagesse universelle — un compagnon pour votre voyage intérieur.</p>
             </>
           )}
-          {started && (
-            <div style={styles.topBar}>
-              <h2 style={styles.titleSmall}>NOVA</h2>
-              <button style={styles.homeBtn} className="home-btn" onClick={handleHome}>↩ Accueil</button>
-            </div>
-          )}
+          {started && <h2 style={styles.titleSmall}>NOVA</h2>}
         </div>
 
         {/* Message admin */}
@@ -288,6 +281,14 @@ const styles = {
   videoIframe: { position: "absolute", top: "50%", left: "50%", transform: "translateX(-50%) translateY(-50%)", width: "100vw", height: "56.25vw", minHeight: "100vh", minWidth: "177.77vh", border: "none" },
   videoOverlay: { position: "fixed", inset: 0, zIndex: 1, background: "rgba(0,0,0,0.75)", pointerEvents: "none" },
   particleContainer: { position: "fixed", inset: 0, pointerEvents: "none", zIndex: 2 },
+  homeBtnFixed: {
+    position: "fixed", top: 20, right: 20, zIndex: 100,
+    background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)",
+    border: "1px solid rgba(200,160,80,0.35)", borderRadius: 30,
+    padding: "8px 18px", color: "#d4a84b", fontSize: 12,
+    cursor: "pointer", fontFamily: "'Palatino Linotype', serif",
+    letterSpacing: 1, transition: "all 0.3s ease",
+  },
   container: { position: "relative", zIndex: 3, width: "100%", maxWidth: 720, minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 24px 24px", boxSizing: "border-box" },
   header: { display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", marginBottom: 32 },
   logoWrap: { position: "relative", width: 80, height: 80, marginBottom: 20 },
@@ -296,8 +297,6 @@ const styles = {
   logoSymbol: { fontSize: 16, color: "#d4a84b", letterSpacing: 2 },
   title: { fontFamily: "'Cinzel', serif", fontSize: 48, fontWeight: 400, letterSpacing: 16, color: "#d4a84b", margin: "0 0 8px", textShadow: "0 0 40px rgba(200,160,80,0.6)" },
   titleSmall: { fontFamily: "'Cinzel', serif", fontSize: 18, fontWeight: 400, letterSpacing: 10, color: "#d4a84b" },
-  topBar: { display: "flex", alignItems: "center", justifyContent: "center", gap: 20, position: "sticky", top: 0, zIndex: 10, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(10px)", padding: "10px 20px", borderRadius: 12, marginBottom: 16, border: "1px solid rgba(200,160,80,0.15)" },
-  homeBtn: { background: "rgba(200,160,80,0.1)", border: "1px solid rgba(200,160,80,0.3)", borderRadius: 20, padding: "6px 16px", color: "#d4a84b", fontSize: 12, cursor: "pointer", fontFamily: "inherit", letterSpacing: 1, transition: "all 0.3s ease" },
   subtitle: { fontSize: 13, letterSpacing: 4, color: "#b0a090", margin: "0 0 20px", textTransform: "uppercase" },
   desc: { fontSize: 15, lineHeight: 1.8, color: "#c8bcac", maxWidth: 500, margin: 0 },
   adminNotice: { background: "rgba(200,160,80,0.12)", border: "1px solid rgba(200,160,80,0.4)", borderRadius: 12, padding: "12px 20px", color: "#d4a84b", fontSize: 13, marginBottom: 16, letterSpacing: 0.5, whiteSpace: "pre-line", maxWidth: 640, width: "100%" },
@@ -326,7 +325,7 @@ const css = `
   .ring-pulse { animation: ringPulse 3s ease-in-out infinite; }
   @keyframes ringPulse { 0%, 100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.08); opacity: 1; box-shadow: 0 0 20px 4px rgba(200,160,80,0.3); } }
   .suggestion-btn:hover { background: rgba(200,160,80,0.2) !important; border-color: rgba(200,160,80,0.6) !important; transform: translateY(-2px); }
-  .home-btn:hover { background: rgba(200,160,80,0.2) !important; border-color: rgba(200,160,80,0.6) !important; }
+  .home-btn:hover { background: rgba(200,160,80,0.2) !important; border-color: rgba(200,160,80,0.5) !important; }
   .send-btn:hover:not(:disabled) { transform: scale(1.1); }
   .input-glow:focus-within { border-color: rgba(200,160,80,0.6) !important; box-shadow: 0 0 24px rgba(200,160,80,0.15); }
   .msg-fade-in { animation: fadeIn 0.4s ease-out; }
