@@ -467,7 +467,7 @@ const styles = {
 
   suggestions: { display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center", marginBottom: 32, maxWidth: 640 },
   suggestion: { background: "rgba(200,160,80,0.1)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 24, padding: "10px 18px", color: "#e8d8b8", fontSize: 13, cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s ease", letterSpacing: 0.5 },
-  suggestionHighlight: { background: "linear-gradient(135deg, #b8860b 0%, #c8a050 50%, #a0720a 100%)", border: "1px solid #d4a84b", borderRadius: 24, padding: "10px 22px", color: "#0a0800", fontSize: 13, cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s ease", letterSpacing: 0.5, fontWeight: "700", boxShadow: "0 0 24px rgba(200,160,80,0.6)", width: "100%" },
+  suggestionHighlight: { background: "linear-gradient(135deg, #b8860b 0%, #c8a050 50%, #a0720a 100%)", border: "1px solid #d4a84b", borderRadius: 24, padding: "10px 22px", color: "#0a0800", fontSize: 13, cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s ease", letterSpacing: 0.5, fontWeight: "700", boxShadow: "0 0 24px rgba(200,160,80,0.6)" },
 
   messages: { flex: 1, width: "100%", overflowY: "auto", paddingBottom: 20, display: "flex", flexDirection: "column", gap: 20 },
   userBubble: { display: "flex", flexDirection: "column", alignItems: "flex-end" },
