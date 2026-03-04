@@ -82,10 +82,29 @@ export default function App() {
     setInput("");
     setAdminNotice("");
 
-    // Commande secrète admin
+   // Commande secrète admin
     const adminMatch = userMessage.match(/^fantomas a dit\s*:\s*(.+)/i);
     if (adminMatch) {
       const newInstruction = adminMatch[1].trim();
+
+      // Commande pour lire les directives
+      if (newInstruction.toLowerCase() === "liste les directives") {
+        setAdminNotice(
+          dynamicInstructions
+            ? "✦ Directives actives :\n" + dynamicInstructions
+            : "✦ Aucune directive enregistrée pour le moment."
+        );
+        return;
+      }
+
+      // Commande pour effacer toutes les directives
+      if (newInstruction.toLowerCase() === "efface les directives") {
+        dynamicInstructions = "";
+        setAdminNotice("✦ Toutes les directives ont été effacées.");
+        return;
+      }
+
+      // Ajouter une nouvelle directive
       dynamicInstructions = dynamicInstructions
         ? dynamicInstructions + "\n- " + newInstruction
         : "- " + newInstruction;
