@@ -137,7 +137,7 @@ Rédige un résumé personnel, chaleureux et subtil de cette conversation (10-15
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "NOVA <onboarding@resend.dev>",
+        from: "NOVA <nova@coeurandco.com>",
         to: user_email,
         subject: `✦ L'essence de votre conversation — ${conv?.title || "NOVA"}`,
         html: `
