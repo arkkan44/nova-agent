@@ -29,11 +29,12 @@ const PARTICLES = Array.from({ length: 30 }, (_, i) => ({
 }));
 
 const SUGGESTIONS = [
-  "Qu'est-ce que les EMI révèlent sur la conscience ?",
-  "Comment accéder à l'état d'être ?",
-  "Qu'est-ce que l'éveil vraiment ?",
-  "Parle-moi de la présence",
+  "S'éveiller, oui ! et après ?",
+  "Comment développer son intuition ?",
+  "Qu'est-ce que les EMI révèlent sur notre conscience ?",
+  "Comment apprendre de son état d'être pour agir ?",
   "Je traverse une période difficile...",
+  "Comment se préparer à la nouvelle ère du Verseau ?",
   "Comment observer mes pensées sans m'y perdre ?",
 ];
 
