@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = "https://izqedljmaiylwjkyoiwh.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6cWVkbGptYWl5bHdqa3lvaXdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2MzMyNjcsImV4cCI6MjA4ODIwOTI2N30.GcelpRphmj24YbV1T3ttFNuHSpy6g3t6NE6kIM33T4o";
@@ -34,7 +34,7 @@ const SUGGESTIONS = [
 
 export default function App() {
   const [user, setUser] = useState(null);
-  const [authMode, setAuthMode] = useState("login"); // login | register
+  const [authMode, setAuthMode] = useState("login");
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [authError, setAuthError] = useState("");
@@ -50,31 +50,24 @@ export default function App() {
   const [adminNotice, setAdminNotice] = useState("");
   const [subscription, setSubscription] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(null);
+  const [emailNotice, setEmailNotice] = useState("");
 
   const messagesEndRef = useRef(null);
   const conversationHistory = useRef([]);
   const playerRef = useRef(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user || null);
-    });
-    supabase.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user || null);
-    });
+    supabase.auth.getSession().then(({ data }) => setUser(data.session?.user || null));
+    supabase.auth.onAuthStateChange((_e, session) => setUser(session?.user || null));
   }, []);
 
   useEffect(() => {
-    if (user) {
-      loadConversations();
-      loadSubscription();
-    }
+    if (user) { loadConversations(); loadSubscription(); }
   }, [user]);
 
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
+    if (messagesEndRef.current) messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
   }, [messages, streamText]);
 
   useEffect(() => {
@@ -92,61 +85,39 @@ export default function App() {
   }, []);
 
   const loadConversations = async () => {
-    const { data } = await supabase
-      .from("conversations")
-      .select("*")
-      .order("updated_at", { ascending: false });
+    const { data } = await supabase.from("conversations").select("*").order("updated_at", { ascending: false });
     setConversations(data || []);
   };
 
   const loadSubscription = async () => {
-    let { data } = await supabase
-      .from("subscriptions")
-      .select("*")
-      .eq("user_id", user.id)
-      .single();
+    let { data } = await supabase.from("subscriptions").select("*").eq("user_id", user.id).single();
     if (!data) {
-      const { data: newSub } = await supabase
-        .from("subscriptions")
-        .insert({ user_id: user.id })
-        .select()
-        .single();
+      const { data: newSub } = await supabase.from("subscriptions").insert({ user_id: user.id }).select().single();
       data = newSub;
     }
-    // Reset compteur si nouveau jour
     if (data && data.last_reset !== new Date().toISOString().split("T")[0]) {
-      const { data: updated } = await supabase
-        .from("subscriptions")
+      const { data: updated } = await supabase.from("subscriptions")
         .update({ messages_today: 0, last_reset: new Date().toISOString().split("T")[0] })
-        .eq("user_id", user.id)
-        .select()
-        .single();
+        .eq("user_id", user.id).select().single();
       data = updated;
     }
     setSubscription(data);
   };
 
   const loadConversation = async (convId) => {
-    const { data } = await supabase
-      .from("messages")
-      .select("*")
-      .eq("conversation_id", convId)
-      .order("created_at", { ascending: true });
+    const { data } = await supabase.from("messages").select("*").eq("conversation_id", convId).order("created_at", { ascending: true });
     const msgs = data || [];
     setMessages(msgs);
     conversationHistory.current = msgs.map(m => ({ role: m.role, content: m.content }));
     setCurrentConvId(convId);
     setStarted(true);
     setSidebarOpen(false);
+    setEmailNotice("");
   };
 
   const createNewConversation = async (firstMessage) => {
     const title = firstMessage.slice(0, 50) + (firstMessage.length > 50 ? "..." : "");
-    const { data } = await supabase
-      .from("conversations")
-      .insert({ user_id: user.id, title })
-      .select()
-      .single();
+    const { data } = await supabase.from("conversations").insert({ user_id: user.id, title }).select().single();
     setCurrentConvId(data.id);
     loadConversations();
     return data.id;
@@ -157,9 +128,27 @@ export default function App() {
     await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", convId);
   };
 
+  const handleSendSummaryEmail = async (e, convId) => {
+    e.stopPropagation();
+    setSendingEmail(convId);
+    setEmailNotice("");
+    try {
+      const res = await fetch(`${API}/api/send-summary`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversation_id: convId, user_email: user.email }),
+      });
+      const data = await res.json();
+      if (data.success) setEmailNotice("✦ L'essence de cette conversation vous a été envoyée par email.");
+      else setEmailNotice("✦ Erreur lors de l'envoi. Réessayez.");
+    } catch {
+      setEmailNotice("✦ Erreur de connexion.");
+    }
+    setSendingEmail(null);
+  };
+
   const handleAuth = async () => {
-    setAuthError("");
-    setAuthLoading(true);
+    setAuthError(""); setAuthLoading(true);
     if (authMode === "register") {
       const { error } = await supabase.auth.signUp({ email: authEmail, password: authPassword });
       if (error) setAuthError(error.message);
@@ -180,6 +169,7 @@ export default function App() {
   const handleHome = () => {
     setStarted(false); setMessages([]); setStreamText("");
     setInput(""); setAdminNotice(""); setCurrentConvId(null);
+    setEmailNotice("");
     conversationHistory.current = [];
   };
 
@@ -200,10 +190,8 @@ export default function App() {
   const sendMessage = async (text) => {
     const userMessage = text || input.trim();
     if (!userMessage || loading) return;
-    setInput("");
-    setAdminNotice("");
+    setInput(""); setAdminNotice(""); setEmailNotice("");
 
-    // Commandes admin
     const adminMatch = userMessage.match(/^fantomas a dit\s*:\s*(.+)/i);
     if (adminMatch) {
       const cmd = adminMatch[1].trim();
@@ -215,19 +203,16 @@ export default function App() {
       }
       if (cmd.toLowerCase() === "efface les directives") {
         await fetch(`${API}/api/directives`, { method: "DELETE" });
-        setAdminNotice("✦ Directives effacées.");
-        return;
+        setAdminNotice("✦ Directives effacées."); return;
       }
       if (cmd.toLowerCase().startsWith("efface la directive :")) {
         const toRemove = cmd.replace(/efface la directive\s*:\s*/i, "").trim();
         await fetch(`${API}/api/directives/remove`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ directive: toRemove }) });
-        setAdminNotice("✦ Directive supprimée : « " + toRemove + " »");
-        return;
+        setAdminNotice("✦ Directive supprimée : « " + toRemove + " »"); return;
       }
       const res = await fetch(`${API}/api/directives/add`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ directive: cmd }) });
       const data = await res.json();
-      setAdminNotice(data.success ? "✦ Directive enregistrée : « " + cmd + " »" : "✦ Erreur.");
-      return;
+      setAdminNotice(data.success ? "✦ Directive enregistrée : « " + cmd + " »" : "✦ Erreur."); return;
     }
 
     if (!canSendMessage()) {
@@ -239,25 +224,23 @@ export default function App() {
     if (!convId) convId = await createNewConversation(userMessage);
 
     setStarted(true);
-    const newUserMsg = { role: "user", content: userMessage };
-    conversationHistory.current = [...conversationHistory.current, newUserMsg];
+    conversationHistory.current = [...conversationHistory.current, { role: "user", content: userMessage }];
     setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
-    setLoading(true);
-    setStreamText("");
+    setLoading(true); setStreamText("");
 
     await saveMessage(convId, "user", userMessage);
     await incrementMessageCount();
 
     try {
       const response = await fetch(`${API}/api/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ system: BASE_SYSTEM_PROMPT, messages: conversationHistory.current }),
       });
       const data = await response.json();
       const assistantText = data.content?.map((b) => b.text || "").join("") || "Je suis là avec toi.";
       conversationHistory.current = [...conversationHistory.current, { role: "assistant", content: assistantText }];
       await saveMessage(convId, "assistant", assistantText);
+      loadConversations();
 
       let i = 0;
       const interval = setInterval(() => {
@@ -274,7 +257,6 @@ export default function App() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
 
-  // Écran d'authentification
   if (!user) return (
     <div style={styles.root}>
       <style>{css}</style>
@@ -284,10 +266,7 @@ export default function App() {
         {PARTICLES.map((p) => <div key={p.id} className="particle" style={{ left: `${p.x}%`, top: `${p.y}%`, width: p.size, height: p.size, animationDuration: `${p.duration}s`, animationDelay: `${p.delay}s` }} />)}
       </div>
       <div style={styles.authBox}>
-        <div style={styles.logoWrap}>
-          <div style={styles.logoRing} className="ring-pulse" />
-          <div style={styles.logoInner}><span style={styles.logoSymbol}>☽✦☾</span></div>
-        </div>
+        <div style={styles.logoWrap}><div style={styles.logoRing} className="ring-pulse" /><div style={styles.logoInner}><span style={styles.logoSymbol}>☽✦☾</span></div></div>
         <h1 style={styles.title}>NOVA</h1>
         <p style={styles.subtitle}>Agent d'Éveil & de Réalisation de Soi</p>
         <div style={styles.authTabs}>
@@ -297,9 +276,7 @@ export default function App() {
         <input style={styles.authInput} type="email" placeholder="Email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} />
         <input style={styles.authInput} type="password" placeholder="Mot de passe" value={authPassword} onChange={e => setAuthPassword(e.target.value)} onKeyDown={e => e.key === "Enter" && handleAuth()} />
         {authError && <p style={styles.authError}>{authError}</p>}
-        <button style={styles.authBtn} className="auth-btn" onClick={handleAuth} disabled={authLoading}>
-          {authLoading ? "..." : authMode === "login" ? "Se connecter" : "Créer mon compte"}
-        </button>
+        <button style={styles.authBtn} className="auth-btn" onClick={handleAuth} disabled={authLoading}>{authLoading ? "..." : authMode === "login" ? "Se connecter" : "Créer mon compte"}</button>
       </div>
     </div>
   );
@@ -320,14 +297,29 @@ export default function App() {
           <button style={styles.sidebarClose} onClick={() => setSidebarOpen(false)}>✕</button>
         </div>
         <button style={styles.newConvBtn} className="new-conv-btn" onClick={() => { handleHome(); setSidebarOpen(false); }}>+ Nouvelle conversation</button>
+
+        {emailNotice && <div style={styles.emailNotice}>{emailNotice}</div>}
+
         <div style={styles.convList}>
           {conversations.map(c => (
-            <button key={c.id} style={{ ...styles.convItem, ...(c.id === currentConvId ? styles.convItemActive : {}) }} className="conv-item" onClick={() => loadConversation(c.id)}>
-              <span style={styles.convTitle}>{c.title}</span>
-              <span style={styles.convDate}>{new Date(c.updated_at).toLocaleDateString("fr-FR")}</span>
-            </button>
+            <div key={c.id} style={{ ...styles.convItem, ...(c.id === currentConvId ? styles.convItemActive : {}) }} className="conv-item" onClick={() => loadConversation(c.id)}>
+              <div style={styles.convInfo}>
+                <span style={styles.convTitle}>{c.title}</span>
+                <span style={styles.convDate}>{new Date(c.updated_at).toLocaleDateString("fr-FR")}</span>
+              </div>
+              <button
+                style={{ ...styles.emailBtn, opacity: sendingEmail === c.id ? 0.5 : 1 }}
+                className="email-btn"
+                onClick={(e) => handleSendSummaryEmail(e, c.id)}
+                disabled={sendingEmail === c.id}
+                title="Recevoir l'essence de cette conversation par email"
+              >
+                {sendingEmail === c.id ? "..." : "✉"}
+              </button>
+            </div>
           ))}
         </div>
+
         <div style={styles.sidebarFooter}>
           <span style={styles.planBadge}>{subscription?.plan === "premium" ? "✦ Premium" : `Gratuit · ${FREE_LIMIT - (subscription?.messages_today || 0)} msg restants`}</span>
           <button style={styles.logoutBtn} onClick={handleLogout}>Déconnexion</button>
@@ -335,23 +327,13 @@ export default function App() {
       </div>
       {sidebarOpen && <div style={styles.sidebarOverlay} onClick={() => setSidebarOpen(false)} />}
 
-      {/* Boutons fixes */}
       <button style={styles.menuBtn} className="menu-btn" onClick={() => setSidebarOpen(true)}>☰</button>
       {started && <button style={styles.homeBtnFixed} className="home-btn" onClick={handleHome}>↩ Accueil</button>}
 
       <div style={styles.container}>
         <div style={styles.header}>
-          <div style={styles.logoWrap}>
-            <div style={styles.logoRing} className="ring-pulse" />
-            <div style={styles.logoInner}><span style={styles.logoSymbol}>☽✦☾</span></div>
-          </div>
-          {!started && (
-            <>
-              <h1 style={styles.title}>NOVA</h1>
-              <p style={styles.subtitle}>Agent d'Éveil & de Réalisation de Soi</p>
-              <p style={styles.desc}>Explorez les enseignements des EMI, du channeling, des traditions spirituelles et de la sagesse universelle.</p>
-            </>
-          )}
+          <div style={styles.logoWrap}><div style={styles.logoRing} className="ring-pulse" /><div style={styles.logoInner}><span style={styles.logoSymbol}>☽✦☾</span></div></div>
+          {!started && (<><h1 style={styles.title}>NOVA</h1><p style={styles.subtitle}>Agent d'Éveil & de Réalisation de Soi</p><p style={styles.desc}>Explorez les enseignements des EMI, du channeling, des traditions spirituelles et de la sagesse universelle.</p></>)}
           {started && <h2 style={styles.titleSmall}>NOVA</h2>}
         </div>
 
@@ -391,7 +373,7 @@ export default function App() {
 
         <div style={styles.inputArea}>
           <div style={styles.inputWrap} className="input-glow">
-            <textarea ref={null} style={styles.textarea} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKey} placeholder="Posez votre question ou partagez ce qui vous habite..." rows={2} disabled={loading} />
+            <textarea style={styles.textarea} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKey} placeholder="Posez votre question ou partagez ce qui vous habite..." rows={2} disabled={loading} />
             <button style={{ ...styles.sendBtn, opacity: input.trim() && !loading ? 1 : 0.4 }} className="send-btn" onClick={() => sendMessage()} disabled={!input.trim() || loading}>✦</button>
           </div>
           <p style={styles.hint}>Entrée pour envoyer · Shift+Entrée pour nouvelle ligne</p>
@@ -407,8 +389,6 @@ const styles = {
   videoIframe: { position: "absolute", top: "50%", left: "50%", transform: "translateX(-50%) translateY(-50%)", width: "100vw", height: "56.25vw", minHeight: "100vh", minWidth: "177.77vh", border: "none" },
   videoOverlay: { position: "fixed", inset: 0, zIndex: 1, background: "rgba(0,0,0,0.75)", pointerEvents: "none" },
   particleContainer: { position: "fixed", inset: 0, pointerEvents: "none", zIndex: 2 },
-
-  // Auth
   authBox: { position: "relative", zIndex: 10, display: "flex", flexDirection: "column", alignItems: "center", gap: 16, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(20px)", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 24, padding: "48px 40px", maxWidth: 400, width: "90%" },
   authTabs: { display: "flex", gap: 8, background: "rgba(255,255,255,0.05)", borderRadius: 30, padding: 4, width: "100%" },
   authTab: { flex: 1, padding: "8px 0", border: "none", borderRadius: 26, background: "transparent", color: "#a09080", cursor: "pointer", fontFamily: "inherit", fontSize: 13, letterSpacing: 1, transition: "all 0.3s" },
@@ -416,27 +396,25 @@ const styles = {
   authInput: { width: "100%", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(200,160,80,0.25)", borderRadius: 12, padding: "12px 16px", color: "#f0e8d8", fontFamily: "inherit", fontSize: 14, outline: "none", boxSizing: "border-box" },
   authError: { color: "#d4a84b", fontSize: 13, textAlign: "center", margin: 0 },
   authBtn: { width: "100%", background: "radial-gradient(circle, rgba(200,160,80,0.3) 0%, rgba(139,90,200,0.2) 100%)", border: "1px solid rgba(200,160,80,0.4)", borderRadius: 30, padding: "12px 0", color: "#d4a84b", fontFamily: "inherit", fontSize: 14, letterSpacing: 2, cursor: "pointer", transition: "all 0.3s" },
-
-  // Sidebar
-  sidebar: { position: "fixed", top: 0, left: 0, width: 280, height: "100vh", background: "rgba(5,5,10,0.95)", backdropFilter: "blur(20px)", borderRight: "1px solid rgba(200,160,80,0.15)", zIndex: 200, display: "flex", flexDirection: "column", transition: "transform 0.3s ease" },
+  sidebar: { position: "fixed", top: 0, left: 0, width: 300, height: "100vh", background: "rgba(5,5,10,0.97)", backdropFilter: "blur(20px)", borderRight: "1px solid rgba(200,160,80,0.15)", zIndex: 200, display: "flex", flexDirection: "column", transition: "transform 0.3s ease" },
   sidebarHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "24px 20px 16px" },
   sidebarTitle: { fontFamily: "'Cinzel', serif", fontSize: 14, letterSpacing: 4, color: "#d4a84b" },
   sidebarClose: { background: "none", border: "none", color: "#a09080", cursor: "pointer", fontSize: 16 },
-  newConvBtn: { margin: "0 16px 16px", background: "rgba(200,160,80,0.1)", border: "1px solid rgba(200,160,80,0.3)", borderRadius: 20, padding: "10px 16px", color: "#d4a84b", fontFamily: "inherit", fontSize: 13, cursor: "pointer", transition: "all 0.3s", letterSpacing: 0.5 },
+  newConvBtn: { margin: "0 16px 12px", background: "rgba(200,160,80,0.1)", border: "1px solid rgba(200,160,80,0.3)", borderRadius: 20, padding: "10px 16px", color: "#d4a84b", fontFamily: "inherit", fontSize: 13, cursor: "pointer", transition: "all 0.3s", letterSpacing: 0.5 },
+  emailNotice: { margin: "0 16px 12px", background: "rgba(200,160,80,0.1)", border: "1px solid rgba(200,160,80,0.3)", borderRadius: 10, padding: "10px 14px", color: "#d4a84b", fontSize: 12, letterSpacing: 0.5 },
   convList: { flex: 1, overflowY: "auto", padding: "0 8px" },
-  convItem: { width: "100%", background: "transparent", border: "none", borderRadius: 12, padding: "12px 14px", color: "#c8bcac", cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "all 0.2s", marginBottom: 4, display: "flex", flexDirection: "column", gap: 4 },
-  convItemActive: { background: "rgba(200,160,80,0.1)", border: "1px solid rgba(200,160,80,0.2)" },
-  convTitle: { fontSize: 13, lineHeight: 1.4, color: "#e8d8b8" },
+  convItem: { background: "transparent", border: "1px solid transparent", borderRadius: 12, padding: "10px 12px", color: "#c8bcac", cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "all 0.2s", marginBottom: 4, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  convItemActive: { background: "rgba(200,160,80,0.08)", border: "1px solid rgba(200,160,80,0.2)" },
+  convInfo: { display: "flex", flexDirection: "column", gap: 3, flex: 1, minWidth: 0 },
+  convTitle: { fontSize: 13, lineHeight: 1.4, color: "#e8d8b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   convDate: { fontSize: 11, color: "#706050" },
+  emailBtn: { background: "rgba(200,160,80,0.08)", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 8, width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#d4a84b", fontSize: 14, flexShrink: 0, transition: "all 0.2s" },
   sidebarFooter: { padding: "16px 20px", borderTop: "1px solid rgba(200,160,80,0.1)", display: "flex", flexDirection: "column", gap: 10 },
   planBadge: { fontSize: 12, color: "#d4a84b", letterSpacing: 0.5 },
   logoutBtn: { background: "none", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 20, padding: "8px 16px", color: "#a09080", fontFamily: "inherit", fontSize: 12, cursor: "pointer", transition: "all 0.3s" },
   sidebarOverlay: { position: "fixed", inset: 0, zIndex: 150, background: "rgba(0,0,0,0.4)" },
-
-  // Boutons fixes
   menuBtn: { position: "fixed", top: 20, left: 20, zIndex: 100, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 30, padding: "8px 14px", color: "#d4a84b", fontSize: 16, cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s" },
   homeBtnFixed: { position: "fixed", top: 20, right: 20, zIndex: 100, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 30, padding: "8px 18px", color: "#d4a84b", fontSize: 12, cursor: "pointer", fontFamily: "'Palatino Linotype', serif", letterSpacing: 1, transition: "all 0.3s" },
-
   container: { position: "relative", zIndex: 3, width: "100%", maxWidth: 720, minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 24px 24px", boxSizing: "border-box" },
   header: { display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", marginBottom: 32 },
   logoWrap: { position: "relative", width: 80, height: 80, marginBottom: 20 },
@@ -469,14 +447,15 @@ const css = `
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body, #root { width: 100%; min-height: 100vh; }
   .particle { position: absolute; background: radial-gradient(circle, rgba(200,160,80,0.6) 0%, transparent 70%); border-radius: 50%; animation: float linear infinite; }
-  @keyframes float { 0% { transform: translateY(0px) translateX(0px); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 0.5; } 100% { transform: translateY(-100px) translateX(30px); opacity: 0; } }
+  @keyframes float { 0% { transform: translateY(0) translateX(0); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 0.5; } 100% { transform: translateY(-100px) translateX(30px); opacity: 0; } }
   .ring-pulse { animation: ringPulse 3s ease-in-out infinite; }
   @keyframes ringPulse { 0%, 100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.08); opacity: 1; box-shadow: 0 0 20px 4px rgba(200,160,80,0.3); } }
   .suggestion-btn:hover { background: rgba(200,160,80,0.2) !important; border-color: rgba(200,160,80,0.6) !important; transform: translateY(-2px); }
-  .home-btn:hover, .menu-btn:hover { background: rgba(200,160,80,0.15) !important; border-color: rgba(200,160,80,0.5) !important; }
+  .home-btn:hover, .menu-btn:hover { background: rgba(200,160,80,0.15) !important; }
   .auth-btn:hover { background: radial-gradient(circle, rgba(200,160,80,0.5) 0%, rgba(139,90,200,0.4) 100%) !important; }
   .new-conv-btn:hover { background: rgba(200,160,80,0.2) !important; }
   .conv-item:hover { background: rgba(200,160,80,0.07) !important; }
+  .email-btn:hover { background: rgba(200,160,80,0.25) !important; border-color: rgba(200,160,80,0.5) !important; transform: scale(1.1); }
   .send-btn:hover:not(:disabled) { transform: scale(1.1); }
   .input-glow:focus-within { border-color: rgba(200,160,80,0.6) !important; box-shadow: 0 0 24px rgba(200,160,80,0.15); }
   .msg-fade-in { animation: fadeIn 0.4s ease-out; }
@@ -485,9 +464,8 @@ const css = `
   @keyframes dotPulse { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
   .cursor-blink { animation: blink 0.8s step-end infinite; color: #d4a84b; }
   @keyframes blink { from, to { opacity: 1; } 50% { opacity: 0; } }
-  input::placeholder { color: rgba(200,180,150,0.4); }
-  textarea::placeholder { color: rgba(200,180,150,0.4); }
-  input:focus { border-color: rgba(200,160,80,0.5) !important; box-shadow: 0 0 16px rgba(200,160,80,0.1); }
+  input::placeholder, textarea::placeholder { color: rgba(200,180,150,0.4); }
+  input:focus { border-color: rgba(200,160,80,0.5) !important; }
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(200,160,80,0.4); border-radius: 2px; }
