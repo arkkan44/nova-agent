@@ -80,6 +80,7 @@ export default function App() {
     if (adminMatch) {
       const cmd = adminMatch[1].trim();
 
+      // Lister toutes les directives
       if (cmd.toLowerCase() === "liste les directives") {
         const res = await fetch(`${API}/api/directives`);
         const data = await res.json();
@@ -89,12 +90,15 @@ export default function App() {
         return;
       }
 
+      // Effacer toutes les directives
       if (cmd.toLowerCase() === "efface les directives") {
         await fetch(`${API}/api/directives`, { method: "DELETE" });
         setAdminNotice("✦ Toutes les directives ont été effacées.");
         return;
       }
-        if (cmd.toLowerCase().startsWith("efface la directive :")) {
+
+      // Effacer une directive précise
+      if (cmd.toLowerCase().startsWith("efface la directive :")) {
         const toRemove = cmd.replace(/efface la directive\s*:\s*/i, "").trim();
         await fetch(`${API}/api/directives/remove`, {
           method: "POST",
@@ -105,7 +109,7 @@ export default function App() {
         return;
       }
 
-      // Ajouter une directive permanente
+      // Ajouter une nouvelle directive permanente
       const res = await fetch(`${API}/api/directives/add`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -165,8 +169,12 @@ export default function App() {
   return (
     <div style={styles.root}>
       <style>{css}</style>
+
+      {/* Video Background */}
       <div style={styles.videoBg}><div id="ytplayer" style={styles.videoIframe} /></div>
       <div style={styles.videoOverlay} />
+
+      {/* Particles */}
       <div style={styles.particleContainer}>
         {PARTICLES.map((p) => (
           <div key={p.id} className="particle" style={{ left: `${p.x}%`, top: `${p.y}%`, width: p.size, height: p.size, animationDuration: `${p.duration}s`, animationDelay: `${p.delay}s` }} />
@@ -174,21 +182,27 @@ export default function App() {
       </div>
 
       <div style={styles.container}>
+
+        {/* Header */}
         <div style={styles.header}>
           <div style={styles.logoWrap}>
             <div style={styles.logoRing} className="ring-pulse" />
             <div style={styles.logoInner}><span style={styles.logoSymbol}>☽✦☾</span></div>
           </div>
-          {!started && (<>
-            <h1 style={styles.title}>NOVA</h1>
-            <p style={styles.subtitle}>Agent d'Éveil & de Réalisation de Soi</p>
-            <p style={styles.desc}>Explorez les enseignements des EMI, du channeling, des traditions spirituelles et de la sagesse universelle — un compagnon pour votre voyage intérieur.</p>
-          </>)}
+          {!started && (
+            <>
+              <h1 style={styles.title}>NOVA</h1>
+              <p style={styles.subtitle}>Agent d'Éveil & de Réalisation de Soi</p>
+              <p style={styles.desc}>Explorez les enseignements des EMI, du channeling, des traditions spirituelles et de la sagesse universelle — un compagnon pour votre voyage intérieur.</p>
+            </>
+          )}
           {started && <h2 style={styles.titleSmall}>NOVA</h2>}
         </div>
 
+        {/* Message admin */}
         {adminNotice && <div style={styles.adminNotice}>{adminNotice}</div>}
 
+        {/* Suggestions */}
         {!started && (
           <div style={styles.suggestions}>
             {SUGGESTIONS.map((s, i) => (
@@ -197,6 +211,7 @@ export default function App() {
           </div>
         )}
 
+        {/* Messages */}
         {started && (
           <div style={styles.messages}>
             {messages.map((m, i) => (
@@ -213,7 +228,10 @@ export default function App() {
               <div style={styles.aiBubble} className="msg-fade-in">
                 <div style={styles.aiLabel}>✦ Nova</div>
                 <div style={styles.aiText}>
-                  {streamText ? (<>{streamText.split("\n").map((line, j) => (<span key={j}>{line}{j < streamText.split("\n").length - 1 && <br />}</span>))}<span className="cursor-blink">|</span></>) : (<div style={styles.dots}><span className="dot" /><span className="dot" style={{ animationDelay: "0.2s" }} /><span className="dot" style={{ animationDelay: "0.4s" }} /></div>)}
+                  {streamText
+                    ? <>{streamText.split("\n").map((line, j) => (<span key={j}>{line}{j < streamText.split("\n").length - 1 && <br />}</span>))}<span className="cursor-blink">|</span></>
+                    : <div style={styles.dots}><span className="dot" /><span className="dot" style={{ animationDelay: "0.2s" }} /><span className="dot" style={{ animationDelay: "0.4s" }} /></div>
+                  }
                 </div>
               </div>
             )}
@@ -221,13 +239,29 @@ export default function App() {
           </div>
         )}
 
+        {/* Zone de saisie */}
         <div style={styles.inputArea}>
           <div style={styles.inputWrap} className="input-glow">
-            <textarea ref={inputRef} style={styles.textarea} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKey} placeholder="Posez votre question ou partagez ce qui vous habite..." rows={2} disabled={loading} />
-            <button style={{ ...styles.sendBtn, opacity: input.trim() && !loading ? 1 : 0.4 }} className="send-btn" onClick={() => sendMessage()} disabled={!input.trim() || loading}>✦</button>
+            <textarea
+              ref={inputRef}
+              style={styles.textarea}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKey}
+              placeholder="Posez votre question ou partagez ce qui vous habite..."
+              rows={2}
+              disabled={loading}
+            />
+            <button
+              style={{ ...styles.sendBtn, opacity: input.trim() && !loading ? 1 : 0.4 }}
+              className="send-btn"
+              onClick={() => sendMessage()}
+              disabled={!input.trim() || loading}
+            >✦</button>
           </div>
           <p style={styles.hint}>Entrée pour envoyer · Shift+Entrée pour nouvelle ligne</p>
         </div>
+
       </div>
     </div>
   );
