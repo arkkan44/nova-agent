@@ -383,7 +383,7 @@ export default function App() {
 
       {/* Boutons fixes */}
       <button style={styles.menuBtn} className="menu-btn" onClick={() => setSidebarOpen(true)}>☰</button>
-      <a href="/vocal" style={styles.vocalBtn} className="vocal-btn">🎤 Vocal</a>
+      
       {started && <button style={styles.homeBtnFixed} className="home-btn" onClick={handleHome}>↩ Accueil</button>}
 
       <div style={styles.container}>
@@ -433,6 +433,7 @@ export default function App() {
           <div style={styles.inputWrap} className="input-glow">
             <textarea style={styles.textarea} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKey} placeholder="Posez votre question ou partagez ce qui vous habite..." rows={2} disabled={loading} />
             <button style={{ ...styles.sendBtn, opacity: input.trim() && !loading ? 1 : 0.4 }} className="send-btn" onClick={() => sendMessage()} disabled={!input.trim() || loading}>✦</button>
+            <a href="/vocal" style={styles.vocalBtn} className="vocal-btn" title="Mode vocal NOVA">🎤</a>
           </div>
           <p style={styles.hint}>✦ Entrée pour envoyer · Shift+Entrée pour nouvelle ligne</p>
         </div>
@@ -476,7 +477,7 @@ const styles = {
   logoutBtn: { background: "none", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 20, padding: "8px 16px", color: "#a09080", fontFamily: "inherit", fontSize: 12, cursor: "pointer", transition: "all 0.3s" },
   sidebarOverlay: { position: "fixed", inset: 0, zIndex: 150, background: "rgba(0,0,0,0.4)" },
   menuBtn: { position: "fixed", top: 20, left: 20, zIndex: 100, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 30, padding: "8px 14px", color: "#d4a84b", fontSize: 16, cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s" },
-  vocalBtn: { position: "fixed", top: 20, right: 20, zIndex: 100, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 30, padding: "8px 18px", color: "#d4a84b", fontSize: 12, cursor: "pointer", fontFamily: "inherit", letterSpacing: 1, textDecoration: "none", transition: "all 0.3s" },
+  vocalBtn: { background: "linear-gradient(135deg, #b8860b 0%, #d4a84b 50%, #a0720a 100%)", border: "1px solid #e8c060", borderRadius: "50%", width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 18, textDecoration: "none", flexShrink: 0, transition: "all 0.3s ease", boxShadow: "0 0 16px rgba(200,160,80,0.7), 0 0 32px rgba(200,160,80,0.3)" },
   homeBtnFixed: { position: "fixed", top: 64, right: 20, zIndex: 100, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 30, padding: "8px 18px", color: "#d4a84b", fontSize: 12, cursor: "pointer", fontFamily: "'Palatino Linotype', serif", letterSpacing: 1, transition: "all 0.3s" },
   container: { position: "relative", zIndex: 3, width: "100%", maxWidth: 720, minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 24px 24px", boxSizing: "border-box" },
   header: { display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", marginBottom: 32 },
@@ -516,7 +517,8 @@ const css = `
   @keyframes ringPulse { 0%, 100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.08); opacity: 1; box-shadow: 0 0 20px 4px rgba(200,160,80,0.3); } }
   .suggestion-btn:hover { background: rgba(200,160,80,0.2) !important; border-color: rgba(200,160,80,0.6) !important; transform: translateY(-2px); }
   .suggestion-highlight:hover { background: linear-gradient(135deg, #d4a84b 0%, #e8c060 50%, #b8860b 100%) !important; transform: translateY(-2px); box-shadow: 0 0 32px rgba(200,160,80,0.8) !important; }
-  .home-btn:hover, .menu-btn:hover, .vocal-btn:hover { background: rgba(200,160,80,0.15) !important; border-color: rgba(200,160,80,0.5) !important; }
+  .home-btn:hover, .menu-btn:hover { background: rgba(200,160,80,0.15) !important; border-color: rgba(200,160,80,0.5) !important; }
+  .vocal-btn:hover { box-shadow: 0 0 28px rgba(200,160,80,0.9), 0 0 56px rgba(200,160,80,0.5) !important; transform: scale(1.1); }
   .auth-btn:hover { background: radial-gradient(circle, rgba(200,160,80,0.5) 0%, rgba(139,90,200,0.4) 100%) !important; }
   .new-conv-btn:hover { background: rgba(200,160,80,0.2) !important; }
   .conv-item:hover { background: rgba(200,160,80,0.07) !important; }
