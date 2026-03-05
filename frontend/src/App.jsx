@@ -180,9 +180,7 @@ export default function App() {
   const handleAuth = async () => {
     setAuthError(""); setAuthLoading(true);
     if (resetMode) {
-      const { error } = await supabase.auth.resetPasswordForEmail(authEmail, {
-        redirectTo: "https://nova.coeurandco.com",
-      });
+      const { error } = await supabase.auth.resetPasswordForEmail(authEmail, { redirectTo: "https://nova.coeurandco.com" });
       if (error) setAuthError(error.message);
       else setResetSent(true);
       setAuthLoading(false);
@@ -371,9 +369,7 @@ export default function App() {
                 <button style={{ ...styles.emailBtn, opacity: sendingEmail === c.id ? 0.5 : 1 }} className="email-btn" onClick={(e) => handleSendSummaryEmail(e, c.id)} disabled={sendingEmail === c.id} title="Recevoir l'essence par email">
                   {sendingEmail === c.id ? "…" : "✉"}
                 </button>
-                <button style={styles.deleteBtn} className="delete-btn" onClick={(e) => deleteConversation(e, c.id)} title="Supprimer cette conversation">
-                  ✕
-                </button>
+                <button style={styles.deleteBtn} className="delete-btn" onClick={(e) => deleteConversation(e, c.id)} title="Supprimer cette conversation">✕</button>
               </div>
             </div>
           ))}
@@ -385,7 +381,9 @@ export default function App() {
       </div>
       {sidebarOpen && <div style={styles.sidebarOverlay} onClick={() => setSidebarOpen(false)} />}
 
+      {/* Boutons fixes */}
       <button style={styles.menuBtn} className="menu-btn" onClick={() => setSidebarOpen(true)}>☰</button>
+      <a href="/vocal" style={styles.vocalBtn} className="vocal-btn">🎤 Vocal</a>
       {started && <button style={styles.homeBtnFixed} className="home-btn" onClick={handleHome}>↩ Accueil</button>}
 
       <div style={styles.container}>
@@ -436,7 +434,7 @@ export default function App() {
             <textarea style={styles.textarea} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKey} placeholder="Posez votre question ou partagez ce qui vous habite..." rows={2} disabled={loading} />
             <button style={{ ...styles.sendBtn, opacity: input.trim() && !loading ? 1 : 0.4 }} className="send-btn" onClick={() => sendMessage()} disabled={!input.trim() || loading}>✦</button>
           </div>
-          <p style={styles.hint}>Entrée pour envoyer · Shift+Entrée pour nouvelle ligne</p>
+          <p style={styles.hint}>✦ Entrée pour envoyer · Shift+Entrée pour nouvelle ligne</p>
         </div>
       </div>
     </div>
@@ -478,7 +476,8 @@ const styles = {
   logoutBtn: { background: "none", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 20, padding: "8px 16px", color: "#a09080", fontFamily: "inherit", fontSize: 12, cursor: "pointer", transition: "all 0.3s" },
   sidebarOverlay: { position: "fixed", inset: 0, zIndex: 150, background: "rgba(0,0,0,0.4)" },
   menuBtn: { position: "fixed", top: 20, left: 20, zIndex: 100, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 30, padding: "8px 14px", color: "#d4a84b", fontSize: 16, cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s" },
-  homeBtnFixed: { position: "fixed", top: 20, right: 20, zIndex: 100, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 30, padding: "8px 18px", color: "#d4a84b", fontSize: 12, cursor: "pointer", fontFamily: "'Palatino Linotype', serif", letterSpacing: 1, transition: "all 0.3s" },
+  vocalBtn: { position: "fixed", top: 20, right: 20, zIndex: 100, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 30, padding: "8px 18px", color: "#d4a84b", fontSize: 12, cursor: "pointer", fontFamily: "inherit", letterSpacing: 1, textDecoration: "none", transition: "all 0.3s" },
+  homeBtnFixed: { position: "fixed", top: 64, right: 20, zIndex: 100, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 30, padding: "8px 18px", color: "#d4a84b", fontSize: 12, cursor: "pointer", fontFamily: "'Palatino Linotype', serif", letterSpacing: 1, transition: "all 0.3s" },
   container: { position: "relative", zIndex: 3, width: "100%", maxWidth: 720, minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 24px 24px", boxSizing: "border-box" },
   header: { display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", marginBottom: 32 },
   logoWrap: { position: "relative", width: 80, height: 80, marginBottom: 20 },
@@ -517,7 +516,7 @@ const css = `
   @keyframes ringPulse { 0%, 100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.08); opacity: 1; box-shadow: 0 0 20px 4px rgba(200,160,80,0.3); } }
   .suggestion-btn:hover { background: rgba(200,160,80,0.2) !important; border-color: rgba(200,160,80,0.6) !important; transform: translateY(-2px); }
   .suggestion-highlight:hover { background: linear-gradient(135deg, #d4a84b 0%, #e8c060 50%, #b8860b 100%) !important; transform: translateY(-2px); box-shadow: 0 0 32px rgba(200,160,80,0.8) !important; }
-  .home-btn:hover, .menu-btn:hover { background: rgba(200,160,80,0.15) !important; }
+  .home-btn:hover, .menu-btn:hover, .vocal-btn:hover { background: rgba(200,160,80,0.15) !important; border-color: rgba(200,160,80,0.5) !important; }
   .auth-btn:hover { background: radial-gradient(circle, rgba(200,160,80,0.5) 0%, rgba(139,90,200,0.4) 100%) !important; }
   .new-conv-btn:hover { background: rgba(200,160,80,0.2) !important; }
   .conv-item:hover { background: rgba(200,160,80,0.07) !important; }
