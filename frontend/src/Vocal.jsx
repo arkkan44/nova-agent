@@ -18,14 +18,25 @@ const PARTICLES = Array.from({ length: 15 }, (_, i) => ({
   size: Math.random() * 3 + 1, duration: Math.random() * 20 + 10, delay: Math.random() * 10,
 }));
 
+const detectBrowser = () => {
+  const ua = navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(ua);
+  const isChromeiOS = /CriOS/i.test(ua);
+  const isFirefoxiOS = /FxiOS/i.test(ua);
+  const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+  const hasRecognition = ("webkitSpeechRecognition" in window) || ("SpeechRecognition" in window);
+  return { isIOS, isChromeiOS, isFirefoxiOS, isSafari, hasRecognition };
+};
+
 export default function Vocal() {
   const [user, setUser] = useState(null);
-  const [status, setStatus] = useState("idle"); // idle | listening | thinking | speaking
+  const [status, setStatus] = useState("idle");
   const [transcript, setTranscript] = useState("");
   const [novaText, setNovaText] = useState("");
   const [error, setError] = useState("");
   const [history, setHistory] = useState([]);
   const [autoListen, setAutoListen] = useState(false);
+  const [browserWarning, setBrowserWarning] = useState("");
 
   const recognitionRef = useRef(null);
   const audioRef = useRef(null);
@@ -33,6 +44,14 @@ export default function Vocal() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setUser(data.session?.user || null));
+
+    // Vérification navigateur au chargement
+    const { isChromeiOS, isFirefoxiOS, isIOS, hasRecognition } = detectBrowser();
+    if (isChromeiOS || isFirefoxiOS) {
+      setBrowserWarning("⚠️ Sur iPhone, la reconnaissance vocale ne fonctionne qu'avec Safari. Ouvrez cette page dans Safari pour utiliser le mode vocal.");
+    } else if (isIOS && !hasRecognition) {
+      setBrowserWarning("⚠️ Votre navigateur ne supporte pas la reconnaissance vocale. Utilisez Safari sur iPhone.");
+    }
   }, []);
 
   useEffect(() => {
@@ -50,10 +69,19 @@ export default function Vocal() {
   }, []);
 
   const startListening = () => {
-    if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
-      setError("Votre navigateur ne supporte pas la reconnaissance vocale. Utilisez Chrome.");
+    setError("");
+
+    // Détection Chrome iOS et Firefox iOS
+    const { isChromeiOS, isFirefoxiOS, hasRecognition } = detectBrowser();
+    if (isChromeiOS || isFirefoxiOS) {
+      setError("Sur iPhone, la reconnaissance vocale ne fonctionne qu'avec Safari. Ouvrez cette page dans Safari.");
       return;
     }
+    if (!hasRecognition) {
+      setError("Votre navigateur ne supporte pas la reconnaissance vocale. Utilisez Safari sur iPhone ou Chrome sur ordinateur.");
+      return;
+    }
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     recognition.lang = "fr-FR";
@@ -61,7 +89,7 @@ export default function Vocal() {
     recognition.maxAlternatives = 1;
     recognitionRef.current = recognition;
 
-    recognition.onstart = () => { setStatus("listening"); setTranscript(""); setError(""); };
+    recognition.onstart = () => { setStatus("listening"); setTranscript(""); };
 
     recognition.onresult = (e) => {
       const text = e.results[0][0].transcript;
@@ -70,7 +98,13 @@ export default function Vocal() {
     };
 
     recognition.onerror = (e) => {
-      setError("Erreur micro : " + e.error);
+      if (e.error === "not-allowed") {
+        setError("Accès au microphone refusé. Allez dans Réglages → Safari → Microphone → Autoriser.");
+      } else if (e.error === "service-not-allowed") {
+        setError("Service vocal non autorisé. Sur iPhone, utilisez Safari. Vérifiez aussi Réglages → Safari → Microphone.");
+      } else {
+        setError("Erreur micro : " + e.error);
+      }
       setStatus("idle");
     };
 
@@ -209,7 +243,13 @@ export default function Vocal() {
         <button style={s.resetBtn} onClick={resetConversation} title="Nouvelle conversation">↺</button>
       </div>
 
-      {/* Zone centrale */}
+      {/* Avertissement navigateur */}
+      {browserWarning && (
+        <div style={s.browserWarning}>
+          {browserWarning}
+        </div>
+      )}
+
       <div style={s.center}>
 
         {/* Orbe principal */}
@@ -217,7 +257,12 @@ export default function Vocal() {
           <div style={{ ...s.orbeRing3, ...(status !== "idle" ? s.orbeRingActive3 : {}) }} className="orbe-ring" />
           <div style={{ ...s.orbeRing2, ...(status !== "idle" ? s.orbeRingActive2 : {}) }} className="orbe-ring" />
           <div style={{ ...s.orbeRing1, ...(status !== "idle" ? s.orbeRingActive1 : {}) }} className="orbe-ring" />
-          <button style={{ ...s.orbe, ...(status === "listening" ? s.orbeListen : status === "speaking" ? s.orbeSpeak : status === "thinking" ? s.orbeThink : {}) }} className={`orbe-btn ${status}`} onClick={handleMicClick}>
+          <button
+            style={{ ...s.orbe, ...(status === "listening" ? s.orbeListen : status === "speaking" ? s.orbeSpeak : status === "thinking" ? s.orbeThink : {}) }}
+            className={`orbe-btn ${status}`}
+            onClick={handleMicClick}
+            disabled={!!browserWarning}
+          >
             <span style={s.micIcon}>{getMicIcon()}</span>
           </button>
         </div>
@@ -241,7 +286,7 @@ export default function Vocal() {
           </div>
         )}
 
-        {error && <p style={s.error}>{error}</p>}
+        {error && <p style={s.error} className="fade-in">{error}</p>}
 
         {/* Auto-écoute */}
         <div style={s.autoRow}>
@@ -250,10 +295,10 @@ export default function Vocal() {
           </button>
         </div>
 
-        {/* Historique */}
+        {/* Compteur échanges */}
         {history.length > 0 && (
           <div style={s.historyWrap}>
-            <p style={s.historyLabel}>Conversation ({Math.floor(history.length / 2)} échange{history.length > 2 ? "s" : ""})</p>
+            <p style={s.historyLabel}>✦ {Math.floor(history.length / 2)} échange{history.length > 2 ? "s" : ""}</p>
           </div>
         )}
       </div>
@@ -274,6 +319,7 @@ const s = {
   headerTitle: { fontFamily: "'Cinzel', serif", fontSize: 16, letterSpacing: 8, color: "#d4a84b" },
   headerSub: { fontSize: 10, letterSpacing: 3, color: "#706050", textTransform: "uppercase" },
   resetBtn: { background: "rgba(0,0,0,0.4)", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 20, padding: "7px 14px", color: "#a09080", fontSize: 16, cursor: "pointer", transition: "all 0.3s" },
+  browserWarning: { position: "fixed", top: 70, left: 0, right: 0, zIndex: 99, background: "rgba(180,100,20,0.95)", backdropFilter: "blur(10px)", padding: "14px 24px", color: "#fff8e0", fontSize: 13, textAlign: "center", lineHeight: 1.6, borderBottom: "1px solid rgba(200,160,80,0.4)" },
   center: { position: "relative", zIndex: 3, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "100px 24px 40px", gap: 24, maxWidth: 600, width: "100%" },
   centerBox: { position: "relative", zIndex: 3, display: "flex", flexDirection: "column", alignItems: "center", gap: 16, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(20px)", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 24, padding: "48px 40px", maxWidth: 400, width: "90%" },
   title: { fontFamily: "'Cinzel', serif", fontSize: 40, fontWeight: 400, letterSpacing: 14, color: "#d4a84b", margin: 0 },
@@ -297,7 +343,7 @@ const s = {
   novaBox: { background: "rgba(200,160,80,0.08)", border: "1px solid rgba(200,160,80,0.25)", borderRadius: 16, padding: "20px 24px", maxWidth: 480, width: "100%", textAlign: "center" },
   novaLabel: { fontSize: 10, letterSpacing: 3, color: "#d4a84b", textTransform: "uppercase", marginBottom: 10 },
   novaText: { fontSize: 15, color: "#ede0cc", lineHeight: 1.8 },
-  error: { color: "#e08080", fontSize: 13, textAlign: "center" },
+  error: { color: "#e8a060", fontSize: 13, textAlign: "center", background: "rgba(200,80,20,0.15)", border: "1px solid rgba(200,80,20,0.3)", borderRadius: 12, padding: "12px 20px", maxWidth: 480, width: "100%", lineHeight: 1.6 },
   autoRow: { display: "flex", justifyContent: "center" },
   autoBtn: { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 20, padding: "8px 20px", color: "#a09080", fontFamily: "inherit", fontSize: 12, cursor: "pointer", letterSpacing: 0.5, transition: "all 0.3s" },
   autoBtnOn: { background: "rgba(200,160,80,0.15)", border: "1px solid rgba(200,160,80,0.5)", color: "#d4a84b" },
@@ -324,5 +370,4 @@ const css = `
   .status-active { color: #d4a84b !important; }
   .fade-in { animation: fadeIn 0.5s ease-out; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-  .back-btn:hover { background: rgba(200,160,80,0.15) !important; }
 `;
