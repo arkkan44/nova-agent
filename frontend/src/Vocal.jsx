@@ -20,12 +20,10 @@ const PARTICLES = Array.from({ length: 15 }, (_, i) => ({
 
 const detectBrowser = () => {
   const ua = navigator.userAgent;
-  const isIOS = /iPad|iPhone|iPod/.test(ua);
   const isChromeiOS = /CriOS/i.test(ua);
   const isFirefoxiOS = /FxiOS/i.test(ua);
-  const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
   const hasRecognition = ("webkitSpeechRecognition" in window) || ("SpeechRecognition" in window);
-  return { isIOS, isChromeiOS, isFirefoxiOS, isSafari, hasRecognition };
+  return { isChromeiOS, isFirefoxiOS, hasRecognition };
 };
 
 export default function Vocal() {
@@ -37,20 +35,19 @@ export default function Vocal() {
   const [history, setHistory] = useState([]);
   const [autoListen, setAutoListen] = useState(false);
   const [browserWarning, setBrowserWarning] = useState("");
+  const [currentConvId, setCurrentConvId] = useState(null);
+  const [savedCount, setSavedCount] = useState(0);
 
   const recognitionRef = useRef(null);
   const audioRef = useRef(null);
   const playerRef = useRef(null);
+  const currentConvIdRef = useRef(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setUser(data.session?.user || null));
-
-    // Vérification navigateur au chargement
-    const { isChromeiOS, isFirefoxiOS, isIOS, hasRecognition } = detectBrowser();
+    const { isChromeiOS, isFirefoxiOS } = detectBrowser();
     if (isChromeiOS || isFirefoxiOS) {
-      setBrowserWarning("⚠️ Sur iPhone, la reconnaissance vocale ne fonctionne qu'avec Safari. Ouvrez cette page dans Safari pour utiliser le mode vocal.");
-    } else if (isIOS && !hasRecognition) {
-      setBrowserWarning("⚠️ Votre navigateur ne supporte pas la reconnaissance vocale. Utilisez Safari sur iPhone.");
+      setBrowserWarning("⚠️ Sur iPhone, la reconnaissance vocale ne fonctionne qu'avec Safari.");
     }
   }, []);
 
@@ -68,13 +65,30 @@ export default function Vocal() {
     return () => { delete window.onYouTubeIframeAPIReady; };
   }, []);
 
+  // ─── SUPABASE ──────────────────────────────────────────────────────────────
+  const createConversation = async (firstMessage) => {
+    if (!user) return null;
+    const title = "🎤 " + firstMessage.slice(0, 45) + (firstMessage.length > 45 ? "..." : "");
+    const { data } = await supabase.from("conversations")
+      .insert({ user_id: user.id, title })
+      .select().single();
+    currentConvIdRef.current = data?.id || null;
+    setCurrentConvId(data?.id || null);
+    return data?.id || null;
+  };
+
+  const saveMessage = async (convId, role, content) => {
+    if (!convId) return;
+    await supabase.from("messages").insert({ conversation_id: convId, role, content });
+    await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", convId);
+  };
+
+  // ─── VOCAL ────────────────────────────────────────────────────────────────
   const startListening = () => {
     setError("");
-
-    // Détection Chrome iOS et Firefox iOS
     const { isChromeiOS, isFirefoxiOS, hasRecognition } = detectBrowser();
     if (isChromeiOS || isFirefoxiOS) {
-      setError("Sur iPhone, la reconnaissance vocale ne fonctionne qu'avec Safari. Ouvrez cette page dans Safari.");
+      setError("Sur iPhone, la reconnaissance vocale ne fonctionne qu'avec Safari.");
       return;
     }
     if (!hasRecognition) {
@@ -98,20 +112,15 @@ export default function Vocal() {
     };
 
     recognition.onerror = (e) => {
-      if (e.error === "not-allowed") {
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
         setError("Accès au microphone refusé. Allez dans Réglages → Safari → Microphone → Autoriser.");
-      } else if (e.error === "service-not-allowed") {
-        setError("Service vocal non autorisé. Sur iPhone, utilisez Safari. Vérifiez aussi Réglages → Safari → Microphone.");
       } else {
         setError("Erreur micro : " + e.error);
       }
       setStatus("idle");
     };
 
-    recognition.onend = () => {
-      if (status === "listening") setStatus("idle");
-    };
-
+    recognition.onend = () => { if (status === "listening") setStatus("idle"); };
     recognition.start();
   };
 
@@ -125,6 +134,13 @@ export default function Vocal() {
     const newHistory = [...history, { role: "user", content: text }];
     setHistory(newHistory);
 
+    // Créer la conversation au premier message
+    let convId = currentConvIdRef.current;
+    if (!convId) {
+      convId = await createConversation(text);
+    }
+    await saveMessage(convId, "user", text);
+
     try {
       const res = await fetch(`${API}/api/chat`, {
         method: "POST",
@@ -134,7 +150,10 @@ export default function Vocal() {
       const data = await res.json();
       const reply = data.content?.map(b => b.text || "").join("") || "Je suis là avec toi.";
       setNovaText(reply);
-      setHistory([...newHistory, { role: "assistant", content: reply }]);
+      const updatedHistory = [...newHistory, { role: "assistant", content: reply }];
+      setHistory(updatedHistory);
+      await saveMessage(convId, "assistant", reply);
+      setSavedCount(Math.floor(updatedHistory.length / 2));
       await speakNova(reply);
     } catch {
       setError("Erreur de connexion à NOVA.");
@@ -150,20 +169,16 @@ export default function Vocal() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
       });
-
       if (!res.ok) throw new Error("Erreur TTS");
-
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       audioRef.current = audio;
-
       audio.onended = () => {
         setStatus("idle");
         URL.revokeObjectURL(url);
         if (autoListen) setTimeout(() => startListening(), 600);
       };
-
       audio.onerror = () => { setStatus("idle"); };
       await audio.play();
     } catch (e) {
@@ -185,6 +200,9 @@ export default function Vocal() {
     setNovaText("");
     setError("");
     setStatus("idle");
+    setCurrentConvId(null);
+    setSavedCount(0);
+    currentConvIdRef.current = null;
   };
 
   const handleMicClick = () => {
@@ -227,7 +245,6 @@ export default function Vocal() {
       <style>{css}</style>
       <div style={s.videoBg}><div id="ytplayer-vocal" style={s.videoIframe} /></div>
       <div style={s.overlay} />
-
       <div style={s.particleContainer}>
         {PARTICLES.map(p => <div key={p.id} className="particle" style={{ left: `${p.x}%`, top: `${p.y}%`, width: p.size, height: p.size, animationDuration: `${p.duration}s`, animationDelay: `${p.delay}s` }} />)}
       </div>
@@ -243,16 +260,11 @@ export default function Vocal() {
         <button style={s.resetBtn} onClick={resetConversation} title="Nouvelle conversation">↺</button>
       </div>
 
-      {/* Avertissement navigateur */}
-      {browserWarning && (
-        <div style={s.browserWarning}>
-          {browserWarning}
-        </div>
-      )}
+      {browserWarning && <div style={s.browserWarning}>{browserWarning}</div>}
 
       <div style={s.center}>
 
-        {/* Orbe principal */}
+        {/* Orbe */}
         <div style={s.orbeWrap}>
           <div style={{ ...s.orbeRing3, ...(status !== "idle" ? s.orbeRingActive3 : {}) }} className="orbe-ring" />
           <div style={{ ...s.orbeRing2, ...(status !== "idle" ? s.orbeRingActive2 : {}) }} className="orbe-ring" />
@@ -267,10 +279,8 @@ export default function Vocal() {
           </button>
         </div>
 
-        {/* Statut */}
         <p style={s.statusLabel} className={status !== "idle" ? "status-active" : ""}>{getStatusLabel()}</p>
 
-        {/* Ce que l'utilisateur a dit */}
         {transcript && (
           <div style={s.transcriptBox} className="fade-in">
             <p style={s.transcriptLabel}>Vous</p>
@@ -278,7 +288,6 @@ export default function Vocal() {
           </div>
         )}
 
-        {/* Ce que NOVA a dit */}
         {novaText && (
           <div style={s.novaBox} className="fade-in">
             <p style={s.novaLabel}>✦ Nova</p>
@@ -288,17 +297,15 @@ export default function Vocal() {
 
         {error && <p style={s.error} className="fade-in">{error}</p>}
 
-        {/* Auto-écoute */}
         <div style={s.autoRow}>
           <button style={{ ...s.autoBtn, ...(autoListen ? s.autoBtnOn : {}) }} onClick={() => setAutoListen(!autoListen)}>
             {autoListen ? "✦ Conversation continue : ON" : "Conversation continue : OFF"}
           </button>
         </div>
 
-        {/* Compteur échanges */}
-        {history.length > 0 && (
+        {savedCount > 0 && (
           <div style={s.historyWrap}>
-            <p style={s.historyLabel}>✦ {Math.floor(history.length / 2)} échange{history.length > 2 ? "s" : ""}</p>
+            <p style={s.historyLabel}>✦ {savedCount} échange{savedCount > 1 ? "s" : ""} sauvegardé{savedCount > 1 ? "s" : ""}</p>
           </div>
         )}
       </div>
@@ -348,7 +355,7 @@ const s = {
   autoBtn: { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 20, padding: "8px 20px", color: "#a09080", fontFamily: "inherit", fontSize: 12, cursor: "pointer", letterSpacing: 0.5, transition: "all 0.3s" },
   autoBtnOn: { background: "rgba(200,160,80,0.15)", border: "1px solid rgba(200,160,80,0.5)", color: "#d4a84b" },
   historyWrap: { textAlign: "center" },
-  historyLabel: { fontSize: 11, color: "#504030", letterSpacing: 1 },
+  historyLabel: { fontSize: 11, color: "#706050", letterSpacing: 1 },
 };
 
 const css = `
