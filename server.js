@@ -56,6 +56,14 @@ app.post("/api/chat", async (req, res) => {
 });
 
 // ─── ELEVENLABS TTS ──────────────────────────────────────────────────────────
+app.options("/api/speak", (req, res) => {
+  res.set({
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  }).sendStatus(204);
+});
+
 app.post("/api/speak", async (req, res) => {
   try {
     const { text } = req.body;
@@ -64,7 +72,10 @@ app.post("/api/speak", async (req, res) => {
     const voiceId = "HuLbOdhRlvQQN8oPP0AJ";
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: "POST",
-      headers: { "xi-api-key": process.env.ELEVENLABS_API_KEY, "Content-Type": "application/json" },
+      headers: {
+        "xi-api-key": process.env.ELEVENLABS_API_KEY,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         text,
         model_id: "eleven_multilingual_v2",
@@ -79,7 +90,13 @@ app.post("/api/speak", async (req, res) => {
     }
 
     const audioBuffer = await response.arrayBuffer();
-    res.set({ "Content-Type": "audio/mpeg", "Content-Length": audioBuffer.byteLength });
+    res.set({
+      "Content-Type": "audio/mpeg",
+      "Content-Length": audioBuffer.byteLength,
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    });
     res.send(Buffer.from(audioBuffer));
   } catch (e) { console.error("Erreur /api/speak:", e.message); res.status(500).json({ error: e.message }); }
 });
