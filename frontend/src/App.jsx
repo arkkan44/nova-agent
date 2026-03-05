@@ -430,9 +430,11 @@ export default function App() {
         )}
 
         <div style={styles.inputArea}>
-          <div style={styles.inputWrap} className="input-glow">
-            <textarea style={styles.textarea} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKey} placeholder="Posez votre question ou partagez ce qui vous habite..." rows={2} disabled={loading} />
-            <button style={{ ...styles.sendBtn, opacity: input.trim() && !loading ? 1 : 0.4 }} className="send-btn" onClick={() => sendMessage()} disabled={!input.trim() || loading}>✦</button>
+          <div style={styles.inputRow}>
+            <div style={styles.inputWrap} className="input-glow">
+              <textarea style={styles.textarea} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKey} placeholder="Posez votre question ou partagez ce qui vous habite..." rows={2} disabled={loading} />
+              <button style={{ ...styles.sendBtn, opacity: input.trim() && !loading ? 1 : 0.4 }} className="send-btn" onClick={() => sendMessage()} disabled={!input.trim() || loading}>✦</button>
+            </div>
             <a href="/vocal" style={styles.vocalBtn} className="vocal-btn" title="Mode vocal NOVA">🎤</a>
           </div>
           <p style={styles.hint}>✦ Entrée pour envoyer · Shift+Entrée pour nouvelle ligne</p>
@@ -477,7 +479,7 @@ const styles = {
   logoutBtn: { background: "none", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 20, padding: "8px 16px", color: "#a09080", fontFamily: "inherit", fontSize: 12, cursor: "pointer", transition: "all 0.3s" },
   sidebarOverlay: { position: "fixed", inset: 0, zIndex: 150, background: "rgba(0,0,0,0.4)" },
   menuBtn: { position: "fixed", top: 20, left: 20, zIndex: 100, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 30, padding: "8px 14px", color: "#d4a84b", fontSize: 16, cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s" },
-  vocalBtn: { background: "linear-gradient(135deg, #b8860b 0%, #d4a84b 50%, #a0720a 100%)", border: "1px solid #e8c060", borderRadius: "50%", width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 18, textDecoration: "none", flexShrink: 0, transition: "all 0.3s ease", boxShadow: "0 0 16px rgba(200,160,80,0.7), 0 0 32px rgba(200,160,80,0.3)" },
+  vocalBtn: { background: "rgba(200,160,80,0.12)", border: "1px solid rgba(200,160,80,0.25)", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 16, textDecoration: "none", flexShrink: 0, transition: "all 0.3s ease", boxShadow: "0 0 8px rgba(200,160,80,0.2)", opacity: 0.6 },
   homeBtnFixed: { position: "fixed", top: 64, right: 20, zIndex: 100, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 30, padding: "8px 18px", color: "#d4a84b", fontSize: 12, cursor: "pointer", fontFamily: "'Palatino Linotype', serif", letterSpacing: 1, transition: "all 0.3s" },
   container: { position: "relative", zIndex: 3, width: "100%", maxWidth: 720, minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 24px 24px", boxSizing: "border-box" },
   header: { display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", marginBottom: 32 },
@@ -501,9 +503,10 @@ const styles = {
   aiText: { background: "rgba(255,255,255,0.08)", border: "1px solid rgba(200,160,80,0.25)", borderRadius: "4px 20px 20px 20px", padding: "16px 20px", fontSize: 15, lineHeight: 1.9, maxWidth: "90%", color: "#ede0cc" },
   dots: { display: "flex", gap: 6, alignItems: "center", height: 20 },
   inputArea: { width: "100%", paddingTop: 20 },
+  inputRow: { display: "flex", alignItems: "flex-end", gap: 10 },
   inputWrap: { display: "flex", alignItems: "flex-end", gap: 12, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 16, padding: "12px 16px" },
   textarea: { flex: 1, background: "transparent", border: "none", outline: "none", color: "#ffffff", fontFamily: "inherit", fontSize: 15, lineHeight: 1.7, resize: "none", padding: 0 },
-  sendBtn: { background: "radial-gradient(circle, rgba(200,160,80,0.4) 0%, rgba(139,90,200,0.3) 100%)", border: "1px solid rgba(200,160,80,0.5)", borderRadius: "50%", width: 40, height: 40, cursor: "pointer", color: "#d4a84b", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.3s ease", flexShrink: 0 },
+  sendBtn: { background: "linear-gradient(135deg, #b8860b 0%, #d4a84b 50%, #a0720a 100%)", border: "1px solid #e8c060", borderRadius: "50%", width: 44, height: 44, cursor: "pointer", color: "#0a0800", fontSize: 20, fontWeight: "bold", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.3s ease", flexShrink: 0, boxShadow: "0 0 20px rgba(200,160,80,0.8), 0 0 40px rgba(200,160,80,0.4)" },
   hint: { textAlign: "center", fontSize: 11, color: "#c8bcac", marginTop: 8, letterSpacing: 1 },
 };
 
@@ -524,7 +527,7 @@ const css = `
   .conv-item:hover { background: rgba(200,160,80,0.07) !important; }
   .email-btn:hover { background: rgba(200,160,80,0.25) !important; border-color: rgba(200,160,80,0.5) !important; transform: scale(1.1); }
   .delete-btn:hover { background: rgba(200,60,60,0.25) !important; border-color: rgba(200,60,60,0.5) !important; transform: scale(1.1); }
-  .send-btn:hover:not(:disabled) { transform: scale(1.1); }
+  .send-btn:hover:not(:disabled) { transform: scale(1.1); box-shadow: 0 0 32px rgba(200,160,80,1), 0 0 64px rgba(200,160,80,0.6) !important; }
   .input-glow:focus-within { border-color: rgba(200,160,80,0.6) !important; box-shadow: 0 0 24px rgba(200,160,80,0.15); }
   .msg-fade-in { animation: fadeIn 0.4s ease-out; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
