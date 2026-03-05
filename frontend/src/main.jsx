@@ -16,10 +16,3 @@ createRoot(document.getElementById("root")).render(
     </BrowserRouter>
   </StrictMode>
 );
-```
-
-Puis :
-```
-git add .
-git commit -m "ajout route vocal"
-git push origin master
