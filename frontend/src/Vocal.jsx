@@ -31,6 +31,8 @@ export default function Vocal() {
   const [status, setStatus] = useState("idle");
   const [transcript, setTranscript] = useState("");
   const [novaText, setNovaText] = useState("");
+  const [novaAudioUrl, setNovaAudioUrl] = useState(null); // URL audio de la dernière réponse
+  const [isReplaying, setIsReplaying] = useState(false);
   const [error, setError] = useState("");
   const [history, setHistory] = useState([]);
   const [autoListen, setAutoListen] = useState(false);
@@ -40,6 +42,7 @@ export default function Vocal() {
 
   const recognitionRef = useRef(null);
   const audioRef = useRef(null);
+  const replayAudioRef = useRef(null);
   const playerRef = useRef(null);
   const currentConvIdRef = useRef(null);
 
@@ -69,9 +72,7 @@ export default function Vocal() {
   const createConversation = async (firstMessage) => {
     if (!user) return null;
     const title = "🎤 " + firstMessage.slice(0, 45) + (firstMessage.length > 45 ? "..." : "");
-    const { data } = await supabase.from("conversations")
-      .insert({ user_id: user.id, title })
-      .select().single();
+    const { data } = await supabase.from("conversations").insert({ user_id: user.id, title }).select().single();
     currentConvIdRef.current = data?.id || null;
     setCurrentConvId(data?.id || null);
     return data?.id || null;
@@ -87,14 +88,8 @@ export default function Vocal() {
   const startListening = () => {
     setError("");
     const { isChromeiOS, isFirefoxiOS, hasRecognition } = detectBrowser();
-    if (isChromeiOS || isFirefoxiOS) {
-      setError("Sur iPhone, la reconnaissance vocale ne fonctionne qu'avec Safari.");
-      return;
-    }
-    if (!hasRecognition) {
-      setError("Votre navigateur ne supporte pas la reconnaissance vocale. Utilisez Safari sur iPhone ou Chrome sur ordinateur.");
-      return;
-    }
+    if (isChromeiOS || isFirefoxiOS) { setError("Sur iPhone, la reconnaissance vocale ne fonctionne qu'avec Safari."); return; }
+    if (!hasRecognition) { setError("Votre navigateur ne supporte pas la reconnaissance vocale."); return; }
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
@@ -104,125 +99,128 @@ export default function Vocal() {
     recognitionRef.current = recognition;
 
     recognition.onstart = () => { setStatus("listening"); setTranscript(""); };
-
-    recognition.onresult = (e) => {
-      const text = e.results[0][0].transcript;
-      setTranscript(text);
-      sendToNova(text);
-    };
-
+    recognition.onresult = (e) => { const text = e.results[0][0].transcript; setTranscript(text); sendToNova(text); };
     recognition.onerror = (e) => {
-      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
-        setError("Accès au microphone refusé. Allez dans Réglages → Safari → Microphone → Autoriser.");
-      } else {
-        setError("Erreur micro : " + e.error);
-      }
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") setError("Accès au microphone refusé. Réglages → Safari → Microphone → Autoriser.");
+      else setError("Erreur micro : " + e.error);
       setStatus("idle");
     };
-
     recognition.onend = () => { if (status === "listening") setStatus("idle"); };
     recognition.start();
   };
 
-  const stopListening = () => {
-    recognitionRef.current?.stop();
-    setStatus("idle");
-  };
+  const stopListening = () => { recognitionRef.current?.stop(); setStatus("idle"); };
 
   const sendToNova = async (text) => {
     setStatus("thinking");
+    setNovaAudioUrl(null); // Efface l'ancien audio
     const newHistory = [...history, { role: "user", content: text }];
     setHistory(newHistory);
 
-    // Créer la conversation au premier message
     let convId = currentConvIdRef.current;
-    if (!convId) {
-      convId = await createConversation(text);
-    }
+    if (!convId) convId = await createConversation(text);
     await saveMessage(convId, "user", text);
 
     try {
-      const res = await fetch(`${API}/api/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ system: BASE_SYSTEM_PROMPT, messages: newHistory }),
-      });
+      const res = await fetch(`${API}/api/chat`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ system: BASE_SYSTEM_PROMPT, messages: newHistory }) });
       const data = await res.json();
       const reply = data.content?.map(b => b.text || "").join("") || "Je suis là avec toi.";
-      setNovaText(reply);
+
       const updatedHistory = [...newHistory, { role: "assistant", content: reply }];
       setHistory(updatedHistory);
       await saveMessage(convId, "assistant", reply);
       setSavedCount(Math.floor(updatedHistory.length / 2));
-      await speakNova(reply);
+
+      setNovaText(reply);
+      setStatus("preparing");
+
+      const audioUrl = await fetchAudio(reply);
+      setNovaAudioUrl(audioUrl);
+      await playAudio(audioUrl);
     } catch {
       setError("Erreur de connexion à NOVA.");
       setStatus("idle");
     }
   };
 
-  const speakNova = async (text) => {
-    setStatus("speaking");
-    try {
-      const res = await fetch(`${API}/api/speak`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      });
-      if (!res.ok) throw new Error("Erreur TTS");
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      audioRef.current = audio;
-      audio.onended = () => {
-        setStatus("idle");
-        URL.revokeObjectURL(url);
-        if (autoListen) setTimeout(() => startListening(), 600);
-      };
-      audio.onerror = () => { setStatus("idle"); };
-      await audio.play();
-    } catch (e) {
-      console.error("Erreur speak:", e);
+  // Récupère l'audio et retourne une URL blob persistante
+  const fetchAudio = async (text) => {
+    const res = await fetch(`${API}/api/speak`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+    if (!res.ok) throw new Error("Erreur TTS");
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
+  };
+
+  const playAudio = async (url) => {
+    const audio = new Audio(url);
+    audioRef.current = audio;
+    audio.onplay = () => setStatus("speaking");
+    audio.onended = () => {
       setStatus("idle");
-    }
+      if (autoListen) setTimeout(() => startListening(), 600);
+    };
+    audio.onerror = () => setStatus("idle");
+    await audio.play();
+  };
+
+  const replayAudio = async () => {
+    if (!novaAudioUrl || isReplaying) return;
+    setIsReplaying(true);
+    replayAudioRef.current?.pause();
+    const audio = new Audio(novaAudioUrl);
+    replayAudioRef.current = audio;
+    audio.onended = () => setIsReplaying(false);
+    audio.onerror = () => setIsReplaying(false);
+    await audio.play();
+  };
+
+  const stopReplay = () => {
+    replayAudioRef.current?.pause();
+    setIsReplaying(false);
   };
 
   const stopAudio = () => {
     audioRef.current?.pause();
+    replayAudioRef.current?.pause();
     recognitionRef.current?.stop();
     setStatus("idle");
+    setIsReplaying(false);
   };
 
   const resetConversation = () => {
     stopAudio();
-    setHistory([]);
-    setTranscript("");
-    setNovaText("");
-    setError("");
-    setStatus("idle");
-    setCurrentConvId(null);
-    setSavedCount(0);
+    setHistory([]); setTranscript(""); setNovaText(""); setError("");
+    setStatus("idle"); setCurrentConvId(null); setSavedCount(0);
+    setNovaAudioUrl(null); setIsReplaying(false);
     currentConvIdRef.current = null;
   };
 
   const handleMicClick = () => {
     if (status === "listening") stopListening();
-    else if (status === "speaking") stopAudio();
+    else if (status === "speaking" || status === "preparing") stopAudio();
     else if (status === "idle") startListening();
   };
 
   const getStatusLabel = () => {
     if (status === "listening") return "Je vous écoute...";
     if (status === "thinking") return "NOVA réfléchit...";
+    if (status === "preparing") return "NOVA prépare sa voix...";
     if (status === "speaking") return "NOVA vous parle...";
     return "Appuyez pour parler";
   };
 
   const getMicIcon = () => {
     if (status === "listening") return "🎙";
-    if (status === "thinking") return "✦";
+    if (status === "thinking" || status === "preparing") return "✦";
     if (status === "speaking") return "⏹";
     return "🎤";
+  };
+
+  const getOrbeStyle = () => {
+    if (status === "listening") return s.orbeListen;
+    if (status === "speaking") return s.orbeSpeak;
+    if (status === "thinking" || status === "preparing") return s.orbeThink;
+    return {};
   };
 
   if (!user) return (
@@ -249,7 +247,6 @@ export default function Vocal() {
         {PARTICLES.map(p => <div key={p.id} className="particle" style={{ left: `${p.x}%`, top: `${p.y}%`, width: p.size, height: p.size, animationDuration: `${p.duration}s`, animationDelay: `${p.delay}s` }} />)}
       </div>
 
-      {/* Header */}
       <div style={s.header}>
         <a href="/" style={s.backBtn}>← Texte</a>
         <div style={s.headerCenter}>
@@ -264,22 +261,18 @@ export default function Vocal() {
 
       <div style={s.center}>
 
-        {/* Orbe */}
         <div style={s.orbeWrap}>
           <div style={{ ...s.orbeRing3, ...(status !== "idle" ? s.orbeRingActive3 : {}) }} className="orbe-ring" />
           <div style={{ ...s.orbeRing2, ...(status !== "idle" ? s.orbeRingActive2 : {}) }} className="orbe-ring" />
           <div style={{ ...s.orbeRing1, ...(status !== "idle" ? s.orbeRingActive1 : {}) }} className="orbe-ring" />
-          <button
-            style={{ ...s.orbe, ...(status === "listening" ? s.orbeListen : status === "speaking" ? s.orbeSpeak : status === "thinking" ? s.orbeThink : {}) }}
-            className={`orbe-btn ${status}`}
-            onClick={handleMicClick}
-            disabled={!!browserWarning}
-          >
+          <button style={{ ...s.orbe, ...getOrbeStyle() }} className={`orbe-btn ${status === "preparing" ? "thinking" : status}`} onClick={handleMicClick} disabled={!!browserWarning || status === "thinking"}>
             <span style={s.micIcon}>{getMicIcon()}</span>
           </button>
         </div>
 
-        <p style={s.statusLabel} className={status !== "idle" ? "status-active" : ""}>{getStatusLabel()}</p>
+        <p style={{ ...s.statusLabel, ...(status !== "idle" ? { color: status === "preparing" ? "#b8a070" : "#d4a84b" } : {}) }}>
+          {getStatusLabel()}
+        </p>
 
         {transcript && (
           <div style={s.transcriptBox} className="fade-in">
@@ -289,9 +282,25 @@ export default function Vocal() {
         )}
 
         {novaText && (
-          <div style={s.novaBox} className="fade-in">
-            <p style={s.novaLabel}>✦ Nova</p>
+          <div style={{ ...s.novaBox, ...(status === "preparing" ? s.novaBoxPreparing : {}) }} className="fade-in">
+            <p style={s.novaLabel}>
+              ✦ Nova {status === "preparing" && <span className="preparing-dots">···</span>}
+            </p>
             <p style={s.novaText}>{novaText}</p>
+
+            {/* Bouton réécouter */}
+            {novaAudioUrl && status !== "thinking" && status !== "preparing" && (
+              <div style={s.replayRow}>
+                <button
+                  style={{ ...s.replayBtn, ...(isReplaying ? s.replayBtnActive : {}) }}
+                  className="replay-btn"
+                  onClick={isReplaying ? stopReplay : replayAudio}
+                  title={isReplaying ? "Arrêter" : "Réécouter"}
+                >
+                  {isReplaying ? "⏹ Arrêter" : "↻ Réécouter"}
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -347,9 +356,13 @@ const s = {
   transcriptBox: { background: "rgba(139,90,200,0.12)", border: "1px solid rgba(139,90,200,0.3)", borderRadius: 16, padding: "16px 20px", maxWidth: 480, width: "100%", textAlign: "center" },
   transcriptLabel: { fontSize: 10, letterSpacing: 3, color: "#9070c0", textTransform: "uppercase", marginBottom: 8 },
   transcriptText: { fontSize: 15, color: "#e0d0f0", lineHeight: 1.6, fontStyle: "italic" },
-  novaBox: { background: "rgba(200,160,80,0.08)", border: "1px solid rgba(200,160,80,0.25)", borderRadius: 16, padding: "20px 24px", maxWidth: 480, width: "100%", textAlign: "center" },
-  novaLabel: { fontSize: 10, letterSpacing: 3, color: "#d4a84b", textTransform: "uppercase", marginBottom: 10 },
+  novaBox: { background: "rgba(200,160,80,0.08)", border: "1px solid rgba(200,160,80,0.25)", borderRadius: 16, padding: "20px 24px", maxWidth: 480, width: "100%", textAlign: "center", transition: "all 0.4s" },
+  novaBoxPreparing: { opacity: 0.6, border: "1px solid rgba(200,160,80,0.15)" },
+  novaLabel: { fontSize: 10, letterSpacing: 3, color: "#d4a84b", textTransform: "uppercase", marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 },
   novaText: { fontSize: 15, color: "#ede0cc", lineHeight: 1.8 },
+  replayRow: { marginTop: 16, display: "flex", justifyContent: "center" },
+  replayBtn: { background: "rgba(200,160,80,0.1)", border: "1px solid rgba(200,160,80,0.3)", borderRadius: 20, padding: "7px 18px", color: "#d4a84b", fontSize: 12, cursor: "pointer", fontFamily: "inherit", letterSpacing: 1, transition: "all 0.3s" },
+  replayBtnActive: { background: "rgba(200,60,60,0.15)", border: "1px solid rgba(200,60,60,0.4)", color: "#e08080" },
   error: { color: "#e8a060", fontSize: 13, textAlign: "center", background: "rgba(200,80,20,0.15)", border: "1px solid rgba(200,80,20,0.3)", borderRadius: 12, padding: "12px 20px", maxWidth: 480, width: "100%", lineHeight: 1.6 },
   autoRow: { display: "flex", justifyContent: "center" },
   autoBtn: { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 20, padding: "8px 20px", color: "#a09080", fontFamily: "inherit", fontSize: 12, cursor: "pointer", letterSpacing: 0.5, transition: "all 0.3s" },
@@ -374,7 +387,9 @@ const css = `
   @keyframes orbeListen { 0%, 100% { transform: scale(1); box-shadow: 0 0 40px rgba(200,60,60,0.3); } 50% { transform: scale(1.06); box-shadow: 0 0 80px rgba(200,60,60,0.6); } }
   @keyframes orbeThink { 0%, 100% { transform: scale(1) rotate(0deg); } 50% { transform: scale(1.04) rotate(5deg); } }
   @keyframes orbeSpeak { 0%, 100% { transform: scale(1); box-shadow: 0 0 40px rgba(200,160,80,0.4); } 50% { transform: scale(1.05); box-shadow: 0 0 80px rgba(200,160,80,0.7); } }
-  .status-active { color: #d4a84b !important; }
   .fade-in { animation: fadeIn 0.5s ease-out; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .preparing-dots { animation: dotsPulse 1s ease-in-out infinite; font-size: 14px; color: #b8a070; }
+  @keyframes dotsPulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+  .replay-btn:hover { background: rgba(200,160,80,0.25) !important; border-color: rgba(200,160,80,0.6) !important; transform: scale(1.05); }
 `;
