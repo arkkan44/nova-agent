@@ -69,7 +69,7 @@ app.post("/api/speak", async (req, res) => {
     const { text } = req.body;
     if (!text) return res.status(400).json({ error: "Texte manquant" });
 
-    const voiceId = "WvErJnWn6OcGO9sG2kqK";
+    const voiceId = "QASMHppTyiZ0ijhb7hy0";
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: "POST",
       headers: {
