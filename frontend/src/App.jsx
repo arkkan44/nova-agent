@@ -121,6 +121,7 @@ export default function App() {
   }, []);
 
   const loadMemory = async () => {
+    if (user?.isAdminPreview) return;
     try {
       const res = await fetch(`${API}/api/memory/${user.id}`);
       const data = await res.json();
@@ -129,6 +130,7 @@ export default function App() {
   };
 
   const loadProfil = async () => {
+    if (user?.isAdminPreview) return; // Accès admin direct, pas de profil requis
     const { data } = await supabase.from("profiles").select("*").eq("user_id", user.id).single();
     if (!data || !data.completed) {
       setShowProfil(true);
@@ -344,9 +346,6 @@ export default function App() {
   const handleKey = (e) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
-
-  // ─── ÉCRAN PROFIL ─────────────────────────────────────────────────────────────
-
 
   // ─── ÉCRAN AUTH ──────────────────────────────────────────────────────────────
   if (!user) return (
