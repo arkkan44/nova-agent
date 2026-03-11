@@ -336,9 +336,9 @@ export default function App() {
   };
 
   // ─── ÉCRAN PROFIL ─────────────────────────────────────────────────────────────
-  if (user && !profilLoading && (!profil || !profil.completed)) {
-
-  }
+ if (user && showProfil) {
+  return <Profil user={user} onComplete={(data) => { setProfil({ ...data, completed: true }); setShowProfil(false); }} />;
+}
 
   // ─── ÉCRAN AUTH ──────────────────────────────────────────────────────────────
   if (!user) return (
