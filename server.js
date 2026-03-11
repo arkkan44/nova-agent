@@ -131,8 +131,9 @@ app.post("/api/speak-meditation", async (req, res) => {
     });
 
     if (!response.ok) {
-      const err = await response.json();
-      return res.status(500).json({ error: "Erreur synthèse vocale méditation" });
+      const errText = await response.text();
+      console.error("ElevenLabs meditation error:", response.status, errText);
+      return res.status(500).json({ error: "Erreur synthèse vocale méditation", detail: errText });
     }
 
     const audioBuffer = await response.arrayBuffer();
