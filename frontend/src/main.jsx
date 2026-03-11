@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import App from "./App.jsx";
 import Admin from "./Admin.jsx";
 import Vocal from "./Vocal.jsx";
+import Meditation from "./Meditation.jsx";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -12,6 +13,7 @@ createRoot(document.getElementById("root")).render(
         <Route path="/" element={<App />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/vocal" element={<Vocal />} />
+        <Route path="/meditation" element={<Meditation />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>

@@ -448,7 +448,8 @@ export default function App() {
         <div style={styles.header}>
           <div style={styles.logoWrap}><div style={styles.logoRing} className="ring-pulse" /><div style={styles.logoInner}><span style={styles.logoSymbol}>☽✦☾</span></div></div>
           {!started && (<><h1 style={styles.title}>NOVA</h1><p style={styles.subtitle}>Agent d'Éveil & de Réalisation de Soi</p>
-            {profil?.prenom && <p style={styles.greeting}>Bienvenue, {profil.prenom} ✦</p>}<p style={styles.desc}>Aux frontières de la conscience, les mystiques, les expérienceurs d'EMI, les guides spirituels nous ont rapporté l'essentiel. NOVA vous aide à l'appliquer à ce que vous vivez aujourd'hui, ici et maintenant.</p></>)}
+            {profil?.prenom && <p style={styles.greeting}>Bienvenue, {profil.prenom} ✦</p>}<p style={styles.desc}>Aux frontières de la conscience, les mystiques, les expérienceurs d'EMI, les guides spirituels nous ont rapporté l'essentiel. NOVA vous aide à l'appliquer à ce que vous vivez aujourd'hui, ici et maintenant.</p>
+            <a href="/meditation" style={styles.meditationBtn} className="meditation-btn">🧘 Méditation guidée</a></>)}
           {started && <h2 style={styles.titleSmall}>NOVA</h2>}
         </div>
 
@@ -549,6 +550,7 @@ const styles = {
   subtitle: { fontSize: 13, letterSpacing: 4, color: "#b0a090", margin: "0 0 20px", textTransform: "uppercase" },
   desc: { fontSize: 15, lineHeight: 1.8, color: "#c8bcac", maxWidth: 500, margin: 0 },
   greeting: { fontSize: 14, color: "#d4a84b", letterSpacing: 2, marginTop: -8 },
+  meditationBtn: { display: "inline-block", marginTop: 16, background: "rgba(139,90,200,0.15)", border: "1px solid rgba(139,90,200,0.4)", borderRadius: 30, padding: "11px 28px", color: "#c8a8f0", fontFamily: "inherit", fontSize: 13, letterSpacing: 1, textDecoration: "none", transition: "all 0.3s", cursor: "pointer" },
   adminNotice: { background: "rgba(200,160,80,0.12)", border: "1px solid rgba(200,160,80,0.4)", borderRadius: 12, padding: "12px 20px", color: "#d4a84b", fontSize: 13, marginBottom: 16, letterSpacing: 0.5, whiteSpace: "pre-line", maxWidth: 640, width: "100%" },
   suggestions: { display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center", marginBottom: 32, maxWidth: 640 },
   suggestion: { background: "rgba(200,160,80,0.1)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 24, padding: "10px 18px", color: "#e8d8b8", fontSize: 13, cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s ease", letterSpacing: 0.5 },
@@ -579,6 +581,7 @@ const css = `
   .suggestion-highlight:hover { background: linear-gradient(135deg, #d4a84b 0%, #e8c060 50%, #b8860b 100%) !important; transform: translateY(-2px); box-shadow: 0 0 32px rgba(200,160,80,0.8) !important; }
   .home-btn:hover, .menu-btn:hover { background: rgba(200,160,80,0.15) !important; border-color: rgba(200,160,80,0.5) !important; }
   .vocal-btn:hover { box-shadow: 0 0 28px rgba(200,160,80,0.9), 0 0 56px rgba(200,160,80,0.5) !important; transform: scale(1.1); }
+  .meditation-btn:hover { background: rgba(139,90,200,0.3) !important; border-color: rgba(139,90,200,0.7) !important; transform: translateY(-2px); box-shadow: 0 0 24px rgba(139,90,200,0.4); }
   .auth-btn:hover { background: radial-gradient(circle, rgba(200,160,80,0.5) 0%, rgba(139,90,200,0.4) 100%) !important; }
   .new-conv-btn:hover { background: rgba(200,160,80,0.2) !important; }
   .conv-item:hover { background: rgba(200,160,80,0.07) !important; }
