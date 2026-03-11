@@ -233,21 +233,11 @@ app.post("/api/memory/update", async (req, res) => {
     // Récupère la mémoire existante
     const { data: existing } = await supabase.from("memories").select("summary").eq("user_id", user_id).single();
 
-    const transcript = messages.slice(-20).map(m => `${m.role === "user" ? "Utilisateur" : "NOVA"}: ${m.content}`).join("
-");
+    const transcript = messages.slice(-20).map(m => `${m.role === "user" ? "Utilisateur" : "NOVA"}: ${m.content}`).join("\n");
 
     const prompt = existing?.summary
-      ? `Voici ce que tu sais déjà sur cet utilisateur :
-${existing.summary}
-
-Voici la nouvelle conversation :
-${transcript}
-
-Mets à jour le résumé en intégrant les nouvelles informations. Garde uniquement ce qui est utile pour personnaliser les futures conversations : sujets importants, émotions exprimées, questions récurrentes, évolutions spirituelles, préoccupations. Maximum 15 lignes. En français.`
-      : `Voici une conversation avec un utilisateur de NOVA :
-${transcript}
-
-Résume ce qui est utile pour personnaliser les futures conversations : sujets importants, émotions exprimées, questions récurrentes, évolutions spirituelles, préoccupations. Maximum 15 lignes. En français.`;
+      ? "Voici ce que tu sais déjà sur cet utilisateur :\n" + existing.summary + "\n\nVoici la nouvelle conversation :\n" + transcript + "\n\nMets à jour le résumé en intégrant les nouvelles informations. Garde uniquement ce qui est utile pour personnaliser les futures conversations : sujets importants, émotions exprimées, questions récurrentes, évolutions spirituelles, préoccupations. Maximum 15 lignes. En français."
+      : "Voici une conversation avec un utilisateur de NOVA :\n" + transcript + "\n\nRésume ce qui est utile pour personnaliser les futures conversations : sujets importants, émotions exprimées, questions récurrentes, évolutions spirituelles, préoccupations. Maximum 15 lignes. En français.";
 
     const response = await client.messages.create({
       model: "claude-sonnet-4-20250514", max_tokens: 400,
