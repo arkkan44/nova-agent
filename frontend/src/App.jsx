@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
+import Profil from "./Profil.jsx";
 
 const SUPABASE_URL = "https://izqedljmaiylwjkyoiwh.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6cWVkbGptYWl5bHdqa3lvaXdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2MzMyNjcsImV4cCI6MjA4ODIwOTI2N30.GcelpRphmj24YbV1T3ttFNuHSpy6g3t6NE6kIM33T4o";
@@ -72,6 +73,8 @@ export default function App() {
   const [adminNotice, setAdminNotice] = useState("");
   const [subscription, setSubscription] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [profil, setProfil] = useState(null);
+  const [showProfil, setShowProfil] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(null);
   const [emailNotice, setEmailNotice] = useState("");
 
@@ -85,7 +88,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (user) { loadConversations(); loadSubscription(); }
+    if (user) { loadConversations(); loadSubscription(); loadProfil(); }
   }, [user]);
 
   useEffect(() => {
@@ -105,6 +108,27 @@ export default function App() {
     };
     return () => { delete window.onYouTubeIframeAPIReady; };
   }, []);
+
+  const loadProfil = async () => {
+    const { data } = await supabase.from("profiles").select("*").eq("user_id", user.id).single();
+    if (!data || !data.completed) {
+      setShowProfil(true);
+    } else {
+      setProfil(data);
+      setShowProfil(false);
+    }
+  };
+
+  const getSystemPrompt = () => {
+    if (!profil || !profil.completed) return BASE_SYSTEM_PROMPT;
+    const parts = [];
+    if (profil.prenom) parts.push(`- Prénom : ${profil.prenom}`);
+    if (profil.chemin_spirituel?.length) parts.push(`- Chemin spirituel : ${profil.chemin_spirituel.join(", ")}`);
+    if (profil.experiences?.length) parts.push(`- Expériences vécues : ${profil.experiences.join(", ")}`);
+    if (profil.niveau) parts.push(`- Niveau : ${profil.niveau}`);
+    if (profil.intention) parts.push(`- Intention : ${profil.intention}`);
+    return BASE_SYSTEM_PROMPT + "\n\n## Profil de l'utilisateur :\n" + parts.join("\n") + "\n\nTu t'adresses à cette personne par son prénom dès que c'est naturel. Tu adaptes tes références spirituelles à son chemin et ses expériences. Tu tiens compte de son intention principale dans chaque réponse.";
+  };
 
   const loadConversations = async () => {
     const { data } = await supabase.from("conversations").select("*").order("updated_at", { ascending: false });
@@ -271,7 +295,7 @@ export default function App() {
     try {
       const response = await fetch(`${API}/api/chat`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ system: BASE_SYSTEM_PROMPT, messages: conversationHistory.current }),
+        body: JSON.stringify({ system: buildSystemPrompt(), messages: conversationHistory.current }),
       });
       const data = await response.json();
       const assistantText = data.content?.map((b) => b.text || "").join("") || "Je suis là avec toi.";
@@ -293,6 +317,11 @@ export default function App() {
   const handleKey = (e) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
+
+  // ─── ÉCRAN PROFIL ─────────────────────────────────────────────────────────────
+  if (user && !profilLoading && (!profil || !profil.completed)) {
+
+  }
 
   // ─── ÉCRAN AUTH ──────────────────────────────────────────────────────────────
   if (!user) return (
@@ -338,6 +367,11 @@ export default function App() {
         )}
       </div>
     </div>
+  );
+
+  // ─── PROFIL ──────────────────────────────────────────────────────────────────
+  if (showProfil) return (
+    <Profil user={user} onComplete={(data) => { setProfil({ ...data, completed: true }); setShowProfil(false); }} />
   );
 
   // ─── APP PRINCIPALE ──────────────────────────────────────────────────────────
@@ -389,7 +423,8 @@ export default function App() {
       <div style={styles.container}>
         <div style={styles.header}>
           <div style={styles.logoWrap}><div style={styles.logoRing} className="ring-pulse" /><div style={styles.logoInner}><span style={styles.logoSymbol}>☽✦☾</span></div></div>
-          {!started && (<><h1 style={styles.title}>NOVA</h1><p style={styles.subtitle}>Agent d'Éveil & de Réalisation de Soi</p><p style={styles.desc}>Aux frontières de la conscience, les mystiques, les expérienceurs d'EMI, les guides spirituels nous ont rapporté l'essentiel. NOVA vous aide à l'appliquer à ce que vous vivez aujourd'hui, ici et maintenant.</p></>)}
+          {!started && (<><h1 style={styles.title}>NOVA</h1><p style={styles.subtitle}>Agent d'Éveil & de Réalisation de Soi</p>
+            {profil?.prenom && <p style={styles.greeting}>Bienvenue, {profil.prenom} ✦</p>}<p style={styles.desc}>Explorez les enseignements des EMI, du channeling, des traditions spirituelles et de la sagesse universelle.</p></>)}
           {started && <h2 style={styles.titleSmall}>NOVA</h2>}
         </div>
 
@@ -489,6 +524,7 @@ const styles = {
   titleSmall: { fontFamily: "'Cinzel', serif", fontSize: 18, fontWeight: 400, letterSpacing: 10, color: "#d4a84b" },
   subtitle: { fontSize: 13, letterSpacing: 4, color: "#b0a090", margin: "0 0 20px", textTransform: "uppercase" },
   desc: { fontSize: 15, lineHeight: 1.8, color: "#c8bcac", maxWidth: 500, margin: 0 },
+  greeting: { fontSize: 14, color: "#d4a84b", letterSpacing: 2, marginTop: -8 },
   adminNotice: { background: "rgba(200,160,80,0.12)", border: "1px solid rgba(200,160,80,0.4)", borderRadius: 12, padding: "12px 20px", color: "#d4a84b", fontSize: 13, marginBottom: 16, letterSpacing: 0.5, whiteSpace: "pre-line", maxWidth: 640, width: "100%" },
   suggestions: { display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center", marginBottom: 32, maxWidth: 640 },
   suggestion: { background: "rgba(200,160,80,0.1)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 24, padding: "10px 18px", color: "#e8d8b8", fontSize: 13, cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s ease", letterSpacing: 0.5 },
