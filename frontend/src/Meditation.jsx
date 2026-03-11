@@ -205,7 +205,10 @@ Règles absolues :
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text: chunks[i] }),
         });
-        if (!res.ok) continue;
+        if (!res.ok) {
+          console.error("ElevenLabs error chunk", i, res.status, await res.text().catch(() => ""));
+          continue;
+        }
 
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
@@ -231,20 +234,23 @@ Règles absolues :
     }
   };
 
-  // Découpage par paragraphes entiers pour éviter les coupures de ton
+  // Découpage par blocs de 2000 chars max pour ElevenLabs
   const splitByParagraphs = (text, maxLen) => {
-    const paragraphs = text.split(/\n\n+/);
+    const limit = Math.min(maxLen, 2000);
+    if (text.length <= limit) return [text];
     const chunks = [];
-    let current = "";
-    for (const p of paragraphs) {
-      if ((current + "\n\n" + p).length > maxLen && current) {
-        chunks.push(current.trim());
-        current = p;
-      } else {
-        current += (current ? "\n\n" : "") + p;
-      }
+    let remaining = text;
+    while (remaining.length > 0) {
+      if (remaining.length <= limit) { chunks.push(remaining); break; }
+      // Chercher une coupure naturelle avant la limite
+      let cutAt = limit;
+      const naturalBreak = remaining.lastIndexOf("...", limit);
+      const sentBreak = remaining.lastIndexOf(". ", limit);
+      if (naturalBreak > limit * 0.5) cutAt = naturalBreak + 3;
+      else if (sentBreak > limit * 0.5) cutAt = sentBreak + 1;
+      chunks.push(remaining.substring(0, cutAt).trim());
+      remaining = remaining.substring(cutAt).trim();
     }
-    if (current.trim()) chunks.push(current.trim());
     return chunks.length ? chunks : [text];
   };
 
