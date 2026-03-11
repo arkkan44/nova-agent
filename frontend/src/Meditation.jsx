@@ -84,6 +84,22 @@ export default function Meditation() {
     }
   };
 
+  const playIntro = async () => {
+    try {
+      const res = await fetch(`${API}/api/speak-meditation-intro`);
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      await new Promise((resolve) => {
+        const audio = new Audio(url);
+        audioRef.current = audio;
+        audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
+        audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+        audio.play().catch(() => resolve());
+      });
+    } catch {}
+  };
+
   const saveMeditation = async (text, etatChoisi, styleChoisi) => {
     if (!user || user.isAdminPreview) return null;
     const title = "🧘 " + etatChoisi + " — " + styleChoisi;
@@ -100,6 +116,8 @@ export default function Meditation() {
     setStep("generating");
     setError("");
     stoppedRef.current = false;
+    // Jouer l'intro immédiatement pendant que Claude génère
+    playIntro();
 
     const profilInfo = profil ? `L'utilisateur s'appelle ${profil.prenom}. Son chemin spirituel : ${profil.chemin_spirituel?.join(", ") || "non précisé"}. Ses expériences : ${profil.experiences?.join(", ") || "non précisé"}.` : "";
 

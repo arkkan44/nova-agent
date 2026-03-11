@@ -147,6 +147,38 @@ app.post("/api/speak-meditation", async (req, res) => {
   } catch (e) { console.error("Erreur /api/speak-meditation:", e.message); res.status(500).json({ error: e.message }); }
 });
 
+// ─── INTRO MÉDITATION (texte fixe, mis en cache) ─────────────────────────────
+let introAudioCache = null;
+
+app.options("/api/speak-meditation-intro", (req, res) => {
+  res.set({ "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" }).sendStatus(204);
+});
+
+app.get("/api/speak-meditation-intro", async (req, res) => {
+  try {
+    if (introAudioCache) {
+      res.set({ "Content-Type": "audio/mpeg", "Content-Length": introAudioCache.byteLength, "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=86400" });
+      return res.send(introAudioCache);
+    }
+    const INTRO_TEXT = "Installez-vous confortablement... Fermez doucement les yeux... Laissez votre corps s'alourdir, s'abandonner... Vous êtes en sécurité... NOVA est là, avec vous... Respirez... simplement... profondément... Laissez chaque souffle vous porter un peu plus loin... vers l'intérieur... vers ce silence qui vous attend... toujours là... toujours présent...";
+    const voiceId = "cg8BLCnP9YxrsTgCaLbb";
+    const response = await fetch("https://api.elevenlabs.io/v1/text-to-speech/" + voiceId, {
+      method: "POST",
+      headers: { "xi-api-key": process.env.ELEVENLABS_API_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text: INTRO_TEXT,
+        model_id: "eleven_multilingual_v2",
+        voice_settings: { stability: 0.45, similarity_boost: 0.85, style: 0.6, use_speaker_boost: true, speed: 0.75 }
+      }),
+    });
+    if (!response.ok) return res.status(500).json({ error: "Erreur intro" });
+    const audioBuffer = await response.arrayBuffer();
+    introAudioCache = Buffer.from(audioBuffer);
+    res.set({ "Content-Type": "audio/mpeg", "Content-Length": introAudioCache.byteLength, "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=86400" });
+    res.send(introAudioCache);
+  } catch (e) { console.error("Erreur intro:", e.message); res.status(500).json({ error: e.message }); }
+});
+
 // ─── DIRECTIVES ──────────────────────────────────────────────────────────────
 app.get("/api/directives", (req, res) => res.json({ directives: loadDirectives() }));
 
