@@ -25,6 +25,7 @@ export default function Meditation() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [convId, setConvId] = useState(null);
   const [progress, setProgress] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
   const [totalTime, setTotalTime] = useState(0);
@@ -57,6 +58,18 @@ export default function Meditation() {
   const loadProfil = async (userId) => {
     const { data } = await supabase.from("profiles").select("*").eq("user_id", userId).single();
     if (data?.completed) setProfil(data);
+  };
+
+  const saveMeditation = async (text, etatChoisi, styleChoisi) => {
+    if (!user || user.isAdminPreview) return;
+    const title = "🧘 " + etatChoisi + " — " + styleChoisi;
+    const { data: conv } = await supabase.from("conversations")
+      .insert({ user_id: user.id, title })
+      .select().single();
+    if (!conv) return;
+    setConvId(conv.id);
+    await supabase.from("messages").insert({ conversation_id: conv.id, role: "assistant", content: text });
+    await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", conv.id);
   };
 
   const generateMeditation = async () => {
@@ -98,6 +111,7 @@ Règles absolues :
       const data = await res.json();
       const text = data.content?.map(b => b.text || "").join("") || "";
       setMeditationText(text);
+      await saveMeditation(text, etat, style);
       // Estimation durée : ~100 mots/minute à 0.75x
       const wordCount = text.split(/\s+/).length;
       const estimatedSeconds = Math.round((wordCount / 100) * 60);
@@ -188,7 +202,7 @@ Règles absolues :
     stopMeditation();
     setStep("intro");
     setEtat(""); setStyle(""); setIntention("");
-    setMeditationText(""); setProgress(0); setTimeLeft(0); setTotalTime(0);
+    setMeditationText(""); setProgress(0); setTimeLeft(0); setTotalTime(0); setConvId(null);
     if (timerRef.current) clearInterval(timerRef.current);
   };
 

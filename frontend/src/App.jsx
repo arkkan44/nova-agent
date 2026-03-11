@@ -77,6 +77,7 @@ export default function App() {
   const [showProfil, setShowProfil] = useState(false);
   const [memory, setMemory] = useState("");
   const [sendingEmail, setSendingEmail] = useState(null);
+  const [meditations, setMeditations] = useState([]);
   const [emailNotice, setEmailNotice] = useState("");
 
   const messagesEndRef = useRef(null);
@@ -99,7 +100,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (user) { loadConversations(); loadSubscription(); loadProfil(); loadMemory(); }
+    if (user) { loadConversations(); loadMeditations(); loadSubscription(); loadProfil(); loadMemory(); }
   }, [user]);
 
   useEffect(() => {
@@ -156,6 +157,14 @@ export default function App() {
   const loadConversations = async () => {
     const { data } = await supabase.from("conversations").select("*").order("updated_at", { ascending: false });
     setConversations(data || []);
+  };
+
+  const loadMeditations = async () => {
+    const { data } = await supabase.from("conversations")
+      .select("*")
+      .ilike("title", "🧘%")
+      .order("updated_at", { ascending: false });
+    setMeditations(data || []);
   };
 
   const loadSubscription = async () => {
@@ -433,6 +442,21 @@ export default function App() {
             </div>
           ))}
         </div>
+        {/* Section Méditations */}
+        {meditations.length > 0 && (
+          <div style={styles.meditationsSection}>
+            <p style={styles.meditationsSectionTitle}>🧘 Méditations</p>
+            {meditations.map(m => (
+              <div key={m.id} style={styles.meditationItem} className="conv-item">
+                <div style={styles.convInfo}>
+                  <span style={styles.convTitle}>{m.title.replace("🧘 ", "")}</span>
+                  <span style={styles.convDate}>{new Date(m.updated_at).toLocaleDateString("fr-FR")}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div style={styles.sidebarFooter}>
           <span style={styles.planBadge}>{subscription?.plan === "premium" ? "✦ Premium" : `Gratuit · ${FREE_LIMIT - (subscription?.messages_today || 0)} msg restants`}</span>
           <button style={styles.logoutBtn} onClick={handleLogout}>Déconnexion</button>
@@ -533,6 +557,9 @@ const styles = {
   convActions: { display: "flex", gap: 4, flexShrink: 0 },
   emailBtn: { background: "rgba(200,160,80,0.08)", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 8, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#d4a84b", fontSize: 13, flexShrink: 0, transition: "all 0.2s" },
   deleteBtn: { background: "rgba(200,60,60,0.08)", border: "1px solid rgba(200,60,60,0.2)", borderRadius: 8, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#c06060", fontSize: 11, flexShrink: 0, transition: "all 0.2s" },
+  meditationsSection: { borderTop: "1px solid rgba(139,90,200,0.2)", padding: "12px 8px 0" },
+  meditationsSectionTitle: { fontSize: 11, letterSpacing: 2, color: "#9070c0", textTransform: "uppercase", padding: "0 8px", marginBottom: 8 },
+  meditationItem: { background: "transparent", border: "1px solid transparent", borderRadius: 12, padding: "10px 12px", color: "#c8bcac", cursor: "default", fontFamily: "inherit", textAlign: "left", transition: "all 0.2s", marginBottom: 4, display: "flex", alignItems: "center" },
   sidebarFooter: { padding: "16px 20px", borderTop: "1px solid rgba(200,160,80,0.1)", display: "flex", flexDirection: "column", gap: 10 },
   planBadge: { fontSize: 12, color: "#d4a84b", letterSpacing: 0.5 },
   logoutBtn: { background: "none", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 20, padding: "8px 16px", color: "#a09080", fontFamily: "inherit", fontSize: 12, cursor: "pointer", transition: "all 0.3s" },
