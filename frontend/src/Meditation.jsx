@@ -26,6 +26,9 @@ export default function Meditation() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [progress, setProgress] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [totalTime, setTotalTime] = useState(0);
+  const timerRef = useRef(null);
   const audioRef = useRef(null);
   const playerRef = useRef(null);
 
@@ -95,8 +98,13 @@ Règles absolues :
       const data = await res.json();
       const text = data.content?.map(b => b.text || "").join("") || "";
       setMeditationText(text);
+      // Estimation durée : ~100 mots/minute à 0.75x
+      const wordCount = text.split(/\s+/).length;
+      const estimatedSeconds = Math.round((wordCount / 100) * 60);
+      setTotalTime(estimatedSeconds);
+      setTimeLeft(estimatedSeconds);
       setStep("player");
-      await playMeditation(text);
+      await playMeditation(text, estimatedSeconds);
     } catch {
       setError("Erreur lors de la génération. Réessaie.");
       setStep("form");
@@ -104,9 +112,19 @@ Règles absolues :
     setIsLoading(false);
   };
 
-  const playMeditation = async (text) => {
+  const playMeditation = async (text, duration) => {
     try {
       setIsPlaying(true);
+      // Décompte
+      if (timerRef.current) clearInterval(timerRef.current);
+      const startTime = Date.now();
+      const totalSec = duration || totalTime;
+      timerRef.current = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const remaining = Math.max(0, totalSec - elapsed);
+        setTimeLeft(remaining);
+        if (remaining === 0) clearInterval(timerRef.current);
+      }, 1000);
       // Split en chunks pour ElevenLabs (max ~500 chars)
       const chunks = splitText(text, 400);
       for (let i = 0; i < chunks.length; i++) {
@@ -131,6 +149,8 @@ Règles absolues :
         }
       }
       setProgress(100);
+      setTimeLeft(0);
+      if (timerRef.current) clearInterval(timerRef.current);
       setIsPlaying(false);
     } catch {
       setIsPlaying(false);
@@ -155,6 +175,7 @@ Règles absolues :
 
   const stopMeditation = () => {
     audioRef.current?.pause();
+    if (timerRef.current) clearInterval(timerRef.current);
     setIsPlaying(false);
   };
 
@@ -167,7 +188,8 @@ Règles absolues :
     stopMeditation();
     setStep("intro");
     setEtat(""); setStyle(""); setIntention("");
-    setMeditationText(""); setProgress(0);
+    setMeditationText(""); setProgress(0); setTimeLeft(0); setTotalTime(0);
+    if (timerRef.current) clearInterval(timerRef.current);
   };
 
   return (
@@ -265,6 +287,14 @@ Règles absolues :
             </div>
 
             <p style={s.playerStatus}>{isPlaying ? "NOVA vous guide..." : progress === 100 ? "Méditation terminée ✦" : "Prêt à commencer"}</p>
+            {(isPlaying || progress > 0) && totalTime > 0 && (
+              <div style={s.timerWrap}>
+                <span style={s.timerText}>
+                  {progress === 100 ? "✦ Terminée" : `${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, "0")} restantes`}
+                </span>
+                <span style={s.timerTotal}> / {Math.floor(totalTime / 60)}:{String(totalTime % 60).padStart(2, "0")}</span>
+              </div>
+            )}
 
             {/* Barre de progression */}
             <div style={s.progressBar}>
@@ -321,6 +351,9 @@ const s = {
   generatingText: { fontSize: 18, color: "#d4a84b", letterSpacing: 2, textAlign: "center", margin: 0 },
   generatingSubText: { fontSize: 13, color: "#706050", letterSpacing: 1, textAlign: "center", margin: 0 },
   playerStatus: { fontSize: 14, letterSpacing: 2, color: "#d4a84b", textTransform: "uppercase", margin: 0 },
+  timerWrap: { display: "flex", alignItems: "center", gap: 4 },
+  timerText: { fontSize: 16, color: "#d4a84b", letterSpacing: 1, fontVariantNumeric: "tabular-nums" },
+  timerTotal: { fontSize: 12, color: "#706050", letterSpacing: 0.5 },
   progressBar: { width: "100%", height: 3, background: "rgba(200,160,80,0.15)", borderRadius: 2, overflow: "hidden" },
   progressFill: { height: "100%", background: "linear-gradient(90deg, #b8860b, #d4a84b)", borderRadius: 2, transition: "width 1s ease" },
   textScroll: { width: "100%", maxHeight: 220, overflowY: "auto", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(200,160,80,0.1)", borderRadius: 16, padding: "20px" },
