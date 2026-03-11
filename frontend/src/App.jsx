@@ -75,6 +75,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profil, setProfil] = useState(null);
   const [showProfil, setShowProfil] = useState(false);
+  const [memory, setMemory] = useState("");
   const [sendingEmail, setSendingEmail] = useState(null);
   const [emailNotice, setEmailNotice] = useState("");
 
@@ -88,7 +89,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (user) { loadConversations(); loadSubscription(); loadProfil(); }
+    if (user) { loadConversations(); loadSubscription(); loadProfil(); loadMemory(); }
   }, [user]);
 
   useEffect(() => {
@@ -109,6 +110,14 @@ export default function App() {
     return () => { delete window.onYouTubeIframeAPIReady; };
   }, []);
 
+  const loadMemory = async () => {
+    try {
+      const res = await fetch(`${API}/api/memory/${user.id}`);
+      const data = await res.json();
+      setMemory(data.summary || "");
+    } catch {}
+  };
+
   const loadProfil = async () => {
     const { data } = await supabase.from("profiles").select("*").eq("user_id", user.id).single();
     if (!data || !data.completed) {
@@ -127,7 +136,9 @@ export default function App() {
     if (profil.experiences?.length) parts.push(`- Expériences vécues : ${profil.experiences.join(", ")}`);
     if (profil.niveau) parts.push(`- Niveau : ${profil.niveau}`);
     if (profil.intention) parts.push(`- Intention : ${profil.intention}`);
-    return BASE_SYSTEM_PROMPT + "\n\n## Profil de l'utilisateur :\n" + parts.join("\n") + "\n\nTu t'adresses à cette personne par son prénom dès que c'est naturel. Tu adaptes tes références spirituelles à son chemin et ses expériences. Tu tiens compte de son intention principale dans chaque réponse.";
+    let prompt = BASE_SYSTEM_PROMPT + "\n\n## Profil de l'utilisateur :\n" + parts.join("\n") + "\n\nTu t'adresses à cette personne par son prénom dès que c'est naturel. Tu adaptes tes références spirituelles à son chemin et ses expériences. Tu tiens compte de son intention principale dans chaque réponse.";
+    if (memory) prompt += "\n\n## Ce que tu sais de cet utilisateur (mémoire des conversations passées) :\n" + memory;
+    return prompt;
   };
 
   const loadConversations = async () => {
@@ -302,6 +313,12 @@ export default function App() {
       conversationHistory.current = [...conversationHistory.current, { role: "assistant", content: assistantText }];
       await saveMessage(convId, "assistant", assistantText);
       loadConversations();
+      // Mise à jour mémoire en arrière-plan
+      fetch(`${API}/api/memory/update`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: user.id, messages: conversationHistory.current })
+      }).then(r => r.json()).then(d => { if (d.summary) setMemory(d.summary); }).catch(() => {});
 
       let i = 0;
       const interval = setInterval(() => {
@@ -318,9 +335,10 @@ export default function App() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
 
-if (user && showProfil) {
-  return <Profil user={user} onComplete={(data) => { setProfil({ ...data, completed: true }); setShowProfil(false); }} />;
-}
+  // ─── ÉCRAN PROFIL ─────────────────────────────────────────────────────────────
+  if (user && !profilLoading && (!profil || !profil.completed)) {
+
+  }
 
   // ─── ÉCRAN AUTH ──────────────────────────────────────────────────────────────
   if (!user) return (

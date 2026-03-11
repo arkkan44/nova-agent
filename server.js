@@ -69,7 +69,7 @@ app.post("/api/speak", async (req, res) => {
     const { text } = req.body;
     if (!text) return res.status(400).json({ error: "Texte manquant" });
 
-    const voiceId = "QASMHppTyiZ0ijhb7hy0";
+    const voiceId = "HuLbOdhRlvQQN8oPP0AJ";
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: "POST",
       headers: {
@@ -219,6 +219,59 @@ app.get("/api/admin/stats", requireAdmin, async (req, res) => {
     const totalToday = todayMsgs?.reduce((sum, s) => sum + (s.messages_today || 0), 0) || 0;
     res.json({ totalUsers, premiumUsers, totalToday });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+
+// ─── MÉMOIRE LONGUE DURÉE ────────────────────────────────────────────────────
+app.post("/api/memory/update", async (req, res) => {
+  try {
+    const { user_id, messages } = req.body;
+    if (!user_id || !messages?.length) return res.status(400).json({ error: "Paramètres manquants" });
+
+    const supabase = getSupabase();
+
+    // Récupère la mémoire existante
+    const { data: existing } = await supabase.from("memories").select("summary").eq("user_id", user_id).single();
+
+    const transcript = messages.slice(-20).map(m => `${m.role === "user" ? "Utilisateur" : "NOVA"}: ${m.content}`).join("
+");
+
+    const prompt = existing?.summary
+      ? `Voici ce que tu sais déjà sur cet utilisateur :
+${existing.summary}
+
+Voici la nouvelle conversation :
+${transcript}
+
+Mets à jour le résumé en intégrant les nouvelles informations. Garde uniquement ce qui est utile pour personnaliser les futures conversations : sujets importants, émotions exprimées, questions récurrentes, évolutions spirituelles, préoccupations. Maximum 15 lignes. En français.`
+      : `Voici une conversation avec un utilisateur de NOVA :
+${transcript}
+
+Résume ce qui est utile pour personnaliser les futures conversations : sujets importants, émotions exprimées, questions récurrentes, évolutions spirituelles, préoccupations. Maximum 15 lignes. En français.`;
+
+    const response = await client.messages.create({
+      model: "claude-sonnet-4-20250514", max_tokens: 400,
+      messages: [{ role: "user", content: prompt }]
+    });
+
+    const summary = response.content?.[0]?.text || "";
+
+    await supabase.from("memories").upsert({
+      user_id,
+      summary,
+      updated_at: new Date().toISOString()
+    });
+
+    res.json({ success: true, summary });
+  } catch (e) { console.error("Erreur memory/update:", e.message); res.status(500).json({ error: e.message }); }
+});
+
+app.get("/api/memory/:userId", async (req, res) => {
+  try {
+    const supabase = getSupabase();
+    const { data } = await supabase.from("memories").select("summary").eq("user_id", req.params.userId).single();
+    res.json({ summary: data?.summary || "" });
+  } catch (e) { res.json({ summary: "" }); }
 });
 
 // ─── START ───────────────────────────────────────────────────────────────────
