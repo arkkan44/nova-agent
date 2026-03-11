@@ -415,6 +415,7 @@ export default function App() {
           <button style={styles.sidebarClose} onClick={() => setSidebarOpen(false)}>✕</button>
         </div>
         <button style={styles.newConvBtn} className="new-conv-btn" onClick={() => { handleHome(); setSidebarOpen(false); }}>+ Nouvelle conversation</button>
+        <a href="/meditation" style={styles.meditationSideBtn} className="meditation-side-btn" onClick={() => setSidebarOpen(false)}>🧘 Méditation guidée</a>
         {emailNotice && <div style={styles.emailNotice}>{emailNotice}</div>}
         <div style={styles.convList}>
           {conversations.map(c => (
@@ -448,8 +449,7 @@ export default function App() {
         <div style={styles.header}>
           <div style={styles.logoWrap}><div style={styles.logoRing} className="ring-pulse" /><div style={styles.logoInner}><span style={styles.logoSymbol}>☽✦☾</span></div></div>
           {!started && (<><h1 style={styles.title}>NOVA</h1><p style={styles.subtitle}>Agent d'Éveil & de Réalisation de Soi</p>
-            {profil?.prenom && <p style={styles.greeting}>Bienvenue, {profil.prenom} ✦</p>}<p style={styles.desc}>Aux frontières de la conscience, les mystiques, les expérienceurs d'EMI, les guides spirituels nous ont rapporté l'essentiel. NOVA vous aide à l'appliquer à ce que vous vivez aujourd'hui, ici et maintenant.</p>
-            <a href="/meditation" style={styles.meditationBtn} className="meditation-btn">🧘 Méditation guidée</a></>)}
+            {profil?.prenom && <p style={styles.greeting}>Bienvenue, {profil.prenom} ✦</p>}<p style={styles.desc}>Aux frontières de la conscience, les mystiques, les expérienceurs d'EMI, les guides spirituels nous ont rapporté l'essentiel. NOVA vous aide à l'appliquer à ce que vous vivez aujourd'hui, ici et maintenant.</p></>)}
           {started && <h2 style={styles.titleSmall}>NOVA</h2>}
         </div>
 
@@ -521,7 +521,8 @@ const styles = {
   sidebarHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "24px 20px 16px" },
   sidebarTitle: { fontFamily: "'Cinzel', serif", fontSize: 14, letterSpacing: 4, color: "#d4a84b" },
   sidebarClose: { background: "none", border: "none", color: "#a09080", cursor: "pointer", fontSize: 16 },
-  newConvBtn: { margin: "0 16px 12px", background: "rgba(200,160,80,0.1)", border: "1px solid rgba(200,160,80,0.3)", borderRadius: 20, padding: "10px 16px", color: "#d4a84b", fontFamily: "inherit", fontSize: 13, cursor: "pointer", transition: "all 0.3s", letterSpacing: 0.5 },
+  newConvBtn: { margin: "0 16px 8px", background: "rgba(200,160,80,0.1)", border: "1px solid rgba(200,160,80,0.3)", borderRadius: 20, padding: "10px 16px", color: "#d4a84b", fontFamily: "inherit", fontSize: 13, cursor: "pointer", transition: "all 0.3s", letterSpacing: 0.5 },
+  meditationSideBtn: { display: "block", margin: "0 16px 12px", background: "rgba(139,90,200,0.1)", border: "1px solid rgba(139,90,200,0.3)", borderRadius: 20, padding: "10px 16px", color: "#c8a8f0", fontFamily: "inherit", fontSize: 13, cursor: "pointer", transition: "all 0.3s", letterSpacing: 0.5, textDecoration: "none", textAlign: "center" },
   emailNotice: { margin: "0 16px 12px", background: "rgba(200,160,80,0.1)", border: "1px solid rgba(200,160,80,0.3)", borderRadius: 10, padding: "10px 14px", color: "#d4a84b", fontSize: 12, letterSpacing: 0.5 },
   convList: { flex: 1, overflowY: "auto", padding: "0 8px" },
   convItem: { background: "transparent", border: "1px solid transparent", borderRadius: 12, padding: "10px 12px", color: "#c8bcac", cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "all 0.2s", marginBottom: 4, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 },
@@ -584,6 +585,7 @@ const css = `
   .meditation-btn:hover { background: rgba(139,90,200,0.3) !important; border-color: rgba(139,90,200,0.7) !important; transform: translateY(-2px); box-shadow: 0 0 24px rgba(139,90,200,0.4); }
   .auth-btn:hover { background: radial-gradient(circle, rgba(200,160,80,0.5) 0%, rgba(139,90,200,0.4) 100%) !important; }
   .new-conv-btn:hover { background: rgba(200,160,80,0.2) !important; }
+  .meditation-side-btn:hover { background: rgba(139,90,200,0.25) !important; border-color: rgba(139,90,200,0.6) !important; }
   .conv-item:hover { background: rgba(200,160,80,0.07) !important; }
   .email-btn:hover { background: rgba(200,160,80,0.25) !important; border-color: rgba(200,160,80,0.5) !important; transform: scale(1.1); }
   .delete-btn:hover { background: rgba(200,60,60,0.25) !important; border-color: rgba(200,60,60,0.5) !important; transform: scale(1.1); }

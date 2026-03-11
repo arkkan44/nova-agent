@@ -111,7 +111,7 @@ Règles absolues :
       const chunks = splitText(text, 400);
       for (let i = 0; i < chunks.length; i++) {
         setProgress(Math.round((i / chunks.length) * 100));
-        const res = await fetch(`${API}/api/speak`, {
+        const res = await fetch(`${API}/api/speak-meditation`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text: chunks[i] }),
