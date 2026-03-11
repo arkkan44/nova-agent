@@ -447,12 +447,12 @@ export default function App() {
           <div style={styles.meditationsSection}>
             <p style={styles.meditationsSectionTitle}>🧘 Méditations</p>
             {meditations.map(m => (
-              <div key={m.id} style={styles.meditationItem} className="conv-item">
+              <a key={m.id} href={`/meditation?id=${m.id}`} style={styles.meditationItem} className="meditation-item">
                 <div style={styles.convInfo}>
                   <span style={styles.convTitle}>{m.title.replace("🧘 ", "")}</span>
                   <span style={styles.convDate}>{new Date(m.updated_at).toLocaleDateString("fr-FR")}</span>
                 </div>
-              </div>
+              </a>
             ))}
           </div>
         )}
@@ -559,7 +559,7 @@ const styles = {
   deleteBtn: { background: "rgba(200,60,60,0.08)", border: "1px solid rgba(200,60,60,0.2)", borderRadius: 8, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#c06060", fontSize: 11, flexShrink: 0, transition: "all 0.2s" },
   meditationsSection: { borderTop: "1px solid rgba(139,90,200,0.2)", padding: "12px 8px 0" },
   meditationsSectionTitle: { fontSize: 11, letterSpacing: 2, color: "#9070c0", textTransform: "uppercase", padding: "0 8px", marginBottom: 8 },
-  meditationItem: { background: "transparent", border: "1px solid transparent", borderRadius: 12, padding: "10px 12px", color: "#c8bcac", cursor: "default", fontFamily: "inherit", textAlign: "left", transition: "all 0.2s", marginBottom: 4, display: "flex", alignItems: "center" },
+  meditationItem: { display: "block", background: "transparent", border: "1px solid transparent", borderRadius: 12, padding: "10px 12px", color: "#c8bcac", cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "all 0.2s", marginBottom: 4, textDecoration: "none" },
   sidebarFooter: { padding: "16px 20px", borderTop: "1px solid rgba(200,160,80,0.1)", display: "flex", flexDirection: "column", gap: 10 },
   planBadge: { fontSize: 12, color: "#d4a84b", letterSpacing: 0.5 },
   logoutBtn: { background: "none", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 20, padding: "8px 16px", color: "#a09080", fontFamily: "inherit", fontSize: 12, cursor: "pointer", transition: "all 0.3s" },
@@ -613,6 +613,7 @@ const css = `
   .auth-btn:hover { background: radial-gradient(circle, rgba(200,160,80,0.5) 0%, rgba(139,90,200,0.4) 100%) !important; }
   .new-conv-btn:hover { background: rgba(200,160,80,0.2) !important; }
   .meditation-side-btn:hover { background: rgba(139,90,200,0.25) !important; border-color: rgba(139,90,200,0.6) !important; }
+  .meditation-item:hover { background: rgba(139,90,200,0.12) !important; border-color: rgba(139,90,200,0.3) !important; }
   .conv-item:hover { background: rgba(200,160,80,0.07) !important; }
   .email-btn:hover { background: rgba(200,160,80,0.25) !important; border-color: rgba(200,160,80,0.5) !important; transform: scale(1.1); }
   .delete-btn:hover { background: rgba(200,60,60,0.25) !important; border-color: rgba(200,60,60,0.5) !important; transform: scale(1.1); }

@@ -25,13 +25,15 @@ export default function Meditation() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [convId, setConvId] = useState(null);
   const [progress, setProgress] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
   const [totalTime, setTotalTime] = useState(0);
+  const [convId, setConvId] = useState(null);
+  const [loadingReplay, setLoadingReplay] = useState(false);
   const timerRef = useRef(null);
   const audioRef = useRef(null);
   const playerRef = useRef(null);
+  const stoppedRef = useRef(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -39,6 +41,11 @@ export default function Meditation() {
       setUser(u);
       if (u) loadProfil(u.id);
     });
+
+    // Charger une méditation existante si ?id= dans l'URL
+    const params = new URLSearchParams(window.location.search);
+    const medId = params.get("id");
+    if (medId) loadExistingMeditation(medId);
   }, []);
 
   useEffect(() => {
@@ -60,22 +67,39 @@ export default function Meditation() {
     if (data?.completed) setProfil(data);
   };
 
+  const loadExistingMeditation = async (id) => {
+    setStep("generating");
+    const { data: msgs } = await supabase.from("messages").select("content").eq("conversation_id", id).single();
+    if (msgs?.content) {
+      const text = msgs.content;
+      setMeditationText(text);
+      const wordCount = text.split(/\s+/).length;
+      const estimatedSeconds = Math.round((wordCount / 100) * 60);
+      setTotalTime(estimatedSeconds);
+      setTimeLeft(estimatedSeconds);
+      setConvId(id);
+      setStep("player");
+    } else {
+      setStep("intro");
+    }
+  };
+
   const saveMeditation = async (text, etatChoisi, styleChoisi) => {
-    if (!user || user.isAdminPreview) return;
+    if (!user || user.isAdminPreview) return null;
     const title = "🧘 " + etatChoisi + " — " + styleChoisi;
-    const { data: conv } = await supabase.from("conversations")
-      .insert({ user_id: user.id, title })
-      .select().single();
-    if (!conv) return;
+    const { data: conv } = await supabase.from("conversations").insert({ user_id: user.id, title }).select().single();
+    if (!conv) return null;
     setConvId(conv.id);
     await supabase.from("messages").insert({ conversation_id: conv.id, role: "assistant", content: text });
     await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", conv.id);
+    return conv.id;
   };
 
   const generateMeditation = async () => {
     setIsLoading(true);
     setStep("generating");
     setError("");
+    stoppedRef.current = false;
 
     const profilInfo = profil ? `L'utilisateur s'appelle ${profil.prenom}. Son chemin spirituel : ${profil.chemin_spirituel?.join(", ") || "non précisé"}. Ses expériences : ${profil.experiences?.join(", ") || "non précisé"}.` : "";
 
@@ -110,13 +134,14 @@ Règles absolues :
       });
       const data = await res.json();
       const text = data.content?.map(b => b.text || "").join("") || "";
-      setMeditationText(text);
-      await saveMeditation(text, etat, style);
-      // Estimation durée : ~100 mots/minute à 0.75x
+
       const wordCount = text.split(/\s+/).length;
       const estimatedSeconds = Math.round((wordCount / 100) * 60);
       setTotalTime(estimatedSeconds);
       setTimeLeft(estimatedSeconds);
+      setMeditationText(text);
+
+      await saveMeditation(text, etat, style);
       setStep("player");
       await playMeditation(text, estimatedSeconds);
     } catch {
@@ -126,44 +151,57 @@ Règles absolues :
     setIsLoading(false);
   };
 
+  // ─── LECTURE AUDIO SANS BLANCS ────────────────────────────────────────────
+  // On envoie le texte complet en une seule requête ElevenLabs (max ~4500 chars)
+  // Si le texte est plus long, on découpe en 2-3 paragraphes naturels (pas de phrases)
   const playMeditation = async (text, duration) => {
     try {
       setIsPlaying(true);
+      stoppedRef.current = false;
+
       // Décompte
       if (timerRef.current) clearInterval(timerRef.current);
       const startTime = Date.now();
       const totalSec = duration || totalTime;
       timerRef.current = setInterval(() => {
+        if (stoppedRef.current) { clearInterval(timerRef.current); return; }
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
         const remaining = Math.max(0, totalSec - elapsed);
         setTimeLeft(remaining);
+        setProgress(Math.min(100, Math.round((elapsed / totalSec) * 100)));
         if (remaining === 0) clearInterval(timerRef.current);
       }, 1000);
-      // Split en chunks pour ElevenLabs (max ~500 chars)
-      const chunks = splitText(text, 400);
+
+      // Découpage en gros blocs par paragraphes (pas par phrases)
+      const chunks = splitByParagraphs(text, 4500);
+
       for (let i = 0; i < chunks.length; i++) {
-        setProgress(Math.round((i / chunks.length) * 100));
+        if (stoppedRef.current) break;
+
         const res = await fetch(`${API}/api/speak-meditation`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text: chunks[i] }),
         });
         if (!res.ok) continue;
+
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
+
         await new Promise((resolve) => {
+          if (stoppedRef.current) { resolve(); return; }
           const audio = new Audio(url);
           audioRef.current = audio;
           audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
-          audio.onerror = () => { resolve(); };
-          audio.play();
+          audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+          audio.play().catch(() => resolve());
         });
-        if (!audioRef.current || audioRef.current.paused === false) {
-          // continue
-        }
       }
-      setProgress(100);
-      setTimeLeft(0);
+
+      if (!stoppedRef.current) {
+        setProgress(100);
+        setTimeLeft(0);
+      }
       if (timerRef.current) clearInterval(timerRef.current);
       setIsPlaying(false);
     } catch {
@@ -171,31 +209,35 @@ Règles absolues :
     }
   };
 
-  const splitText = (text, maxLen) => {
-    const sentences = text.split(/(?<=[.!?…])\s+/);
+  // Découpage par paragraphes entiers pour éviter les coupures de ton
+  const splitByParagraphs = (text, maxLen) => {
+    const paragraphs = text.split(/\n\n+/);
     const chunks = [];
     let current = "";
-    for (const s of sentences) {
-      if ((current + " " + s).length > maxLen && current) {
+    for (const p of paragraphs) {
+      if ((current + "\n\n" + p).length > maxLen && current) {
         chunks.push(current.trim());
-        current = s;
+        current = p;
       } else {
-        current += " " + s;
+        current += (current ? "\n\n" : "") + p;
       }
     }
     if (current.trim()) chunks.push(current.trim());
-    return chunks;
+    return chunks.length ? chunks : [text];
   };
 
   const stopMeditation = () => {
+    stoppedRef.current = true;
     audioRef.current?.pause();
     if (timerRef.current) clearInterval(timerRef.current);
     setIsPlaying(false);
   };
 
-  const restartMeditation = async () => {
+  const replayMeditation = async () => {
     setProgress(0);
-    await playMeditation(meditationText);
+    setTimeLeft(totalTime);
+    stoppedRef.current = false;
+    await playMeditation(meditationText, totalTime);
   };
 
   const reset = () => {
@@ -203,7 +245,7 @@ Règles absolues :
     setStep("intro");
     setEtat(""); setStyle(""); setIntention("");
     setMeditationText(""); setProgress(0); setTimeLeft(0); setTotalTime(0); setConvId(null);
-    if (timerRef.current) clearInterval(timerRef.current);
+    window.history.replaceState({}, "", "/meditation");
   };
 
   return (
@@ -215,7 +257,6 @@ Règles absolues :
         {PARTICLES.map(p => <div key={p.id} className="particle" style={{ left: `${p.x}%`, top: `${p.y}%`, width: p.size, height: p.size, animationDuration: `${p.duration}s`, animationDelay: `${p.delay}s` }} />)}
       </div>
 
-      {/* Header */}
       <div style={s.header}>
         <a href="/" style={s.backBtn}>← NOVA</a>
         <div style={s.headerCenter}>
@@ -227,81 +268,59 @@ Règles absolues :
 
       <div style={s.center}>
 
-        {/* INTRO */}
         {step === "intro" && (
           <div style={s.card} className="fade-in">
-            <div style={s.orbeSmall} className="orbe-idle">
-              <span style={{ fontSize: 32 }}>🧘</span>
-            </div>
+            <div style={s.orbeSmall} className="orbe-idle"><span style={{ fontSize: 32 }}>🧘</span></div>
             <h1 style={s.title}>Méditation Guidée</h1>
             <p style={s.subtitle}>NOVA crée pour vous une méditation unique,<br />adaptée à votre état et votre chemin.</p>
-            <button style={s.startBtn} className="start-btn" onClick={() => setStep("form")}>
-              Commencer ✦
-            </button>
+            <button style={s.startBtn} className="start-btn" onClick={() => setStep("form")}>Commencer ✦</button>
           </div>
         )}
 
-        {/* FORM */}
         {step === "form" && (
           <div style={s.card} className="fade-in">
             <h2 style={s.formTitle}>Comment vous sentez-vous<br />en ce moment ?</h2>
             <div style={s.optionsWrap}>
               {ETATS.map(e => (
-                <button key={e} style={{ ...s.optionBtn, ...(etat === e ? s.optionBtnActive : {}) }}
-                  className="option-btn" onClick={() => setEtat(e)}>
+                <button key={e} style={{ ...s.optionBtn, ...(etat === e ? s.optionBtnActive : {}) }} className="option-btn" onClick={() => setEtat(e)}>
                   {etat === e && "✦ "}{e}
                 </button>
               ))}
             </div>
-
             <h2 style={{ ...s.formTitle, marginTop: 28 }}>Quel style de méditation ?</h2>
             <div style={s.optionsWrap}>
               {STYLES.map(st => (
-                <button key={st} style={{ ...s.optionBtn, ...(style === st ? s.optionBtnActive : {}) }}
-                  className="option-btn" onClick={() => setStyle(st)}>
+                <button key={st} style={{ ...s.optionBtn, ...(style === st ? s.optionBtnActive : {}) }} className="option-btn" onClick={() => setStyle(st)}>
                   {style === st && "✦ "}{st}
                 </button>
               ))}
             </div>
-
             <h2 style={{ ...s.formTitle, marginTop: 28 }}>Une intention ? <span style={{ color: "#706050", fontSize: 13 }}>(optionnel)</span></h2>
             <textarea style={s.textarea} placeholder="Ex: trouver la paix, lâcher le mental, m'ouvrir à l'amour..."
               value={intention} onChange={e => setIntention(e.target.value)} rows={2} />
-
             {error && <p style={s.error}>{error}</p>}
-
-            <button
-              style={{ ...s.startBtn, opacity: etat && style ? 1 : 0.4, marginTop: 28 }}
-              className={etat && style ? "start-btn" : ""}
-              onClick={generateMeditation}
-              disabled={!etat || !style}
-            >
+            <button style={{ ...s.startBtn, opacity: etat && style ? 1 : 0.4, marginTop: 28 }} className={etat && style ? "start-btn" : ""} onClick={generateMeditation} disabled={!etat || !style}>
               Générer ma méditation ✦
             </button>
           </div>
         )}
 
-        {/* GENERATING */}
         {step === "generating" && (
           <div style={s.card} className="fade-in">
-            <div style={s.orbeSmall} className="orbe-think">
-              <span style={{ fontSize: 28 }}>✦</span>
-            </div>
+            <div style={s.orbeSmall} className="orbe-think"><span style={{ fontSize: 28 }}>✦</span></div>
             <p style={s.generatingText}>NOVA prépare votre méditation...</p>
             <p style={s.generatingSubText}>Un espace sacré se crée pour vous</p>
           </div>
         )}
 
-        {/* PLAYER */}
         {step === "player" && (
           <div style={s.playerCard} className="fade-in">
-            {/* Orbe animée */}
             <div style={s.orbe} className={isPlaying ? "orbe-speak" : "orbe-idle"}>
               <span style={{ fontSize: 36 }}>{isPlaying ? "✦" : "🧘"}</span>
             </div>
-
             <p style={s.playerStatus}>{isPlaying ? "NOVA vous guide..." : progress === 100 ? "Méditation terminée ✦" : "Prêt à commencer"}</p>
-            {(isPlaying || progress > 0) && totalTime > 0 && (
+
+            {totalTime > 0 && (
               <div style={s.timerWrap}>
                 <span style={s.timerText}>
                   {progress === 100 ? "✦ Terminée" : `${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, "0")} restantes`}
@@ -310,28 +329,21 @@ Règles absolues :
               </div>
             )}
 
-            {/* Barre de progression */}
-            <div style={s.progressBar}>
-              <div style={{ ...s.progressFill, width: `${progress}%` }} className={isPlaying ? "progress-anim" : ""} />
-            </div>
+            <div style={s.progressBar}><div style={{ ...s.progressFill, width: `${progress}%` }} /></div>
 
-            {/* Texte de la méditation */}
             <div style={s.textScroll}>
               <p style={s.meditationText}>{meditationText}</p>
             </div>
 
-            {/* Contrôles */}
             <div style={s.controls}>
-              {isPlaying ? (
-                <button style={s.controlBtn} className="control-btn" onClick={stopMeditation}>⏸ Pause</button>
-              ) : (
-                <button style={s.controlBtn} className="control-btn" onClick={restartMeditation}>▶ {progress > 0 ? "Reprendre" : "Écouter"}</button>
-              )}
+              {isPlaying
+                ? <button style={s.controlBtn} className="control-btn" onClick={stopMeditation}>⏸ Pause</button>
+                : <button style={s.controlBtn} className="control-btn" onClick={replayMeditation}>{progress > 0 && progress < 100 ? "▶ Reprendre" : "▶ Écouter"}</button>
+              }
               <button style={s.controlBtnSecondary} onClick={reset}>↺ Nouvelle</button>
             </div>
           </div>
         )}
-
       </div>
     </div>
   );
@@ -394,7 +406,6 @@ const css = `
   .option-btn:hover { background: rgba(200,160,80,0.18) !important; border-color: rgba(200,160,80,0.5) !important; color: #e8d8b8 !important; }
   .start-btn:hover { box-shadow: 0 0 40px rgba(200,160,80,0.8) !important; transform: translateY(-2px); }
   .control-btn:hover { box-shadow: 0 0 32px rgba(200,160,80,0.7) !important; transform: translateY(-1px); }
-  .progress-anim { transition: width 2s ease !important; }
   textarea::placeholder { color: rgba(255,255,255,0.3); }
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-thumb { background: rgba(200,160,80,0.4); border-radius: 2px; }
