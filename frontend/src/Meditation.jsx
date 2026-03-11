@@ -77,6 +77,7 @@ export default function Meditation() {
       const estimatedSeconds = Math.round((wordCount / 100) * 60);
       setTotalTime(estimatedSeconds);
       setTimeLeft(estimatedSeconds);
+      setProgress(0);   // toujours à 0 au chargement
       setConvId(id);
       setStep("player");
     } else {
@@ -176,8 +177,9 @@ Règles absolues :
     try {
       setIsPlaying(true);
       stoppedRef.current = false;
+      setProgress(0);
 
-      // Décompte
+      // Timer pour le décompte affiché
       if (timerRef.current) clearInterval(timerRef.current);
       const startTime = Date.now();
       const totalSec = duration || totalTime;
@@ -186,15 +188,17 @@ Règles absolues :
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
         const remaining = Math.max(0, totalSec - elapsed);
         setTimeLeft(remaining);
-        setProgress(Math.min(100, Math.round((elapsed / totalSec) * 100)));
         if (remaining === 0) clearInterval(timerRef.current);
       }, 1000);
 
-      // Découpage en gros blocs par paragraphes (pas par phrases)
+      // Découpage en gros blocs par paragraphes
       const chunks = splitByParagraphs(text, 4500);
 
       for (let i = 0; i < chunks.length; i++) {
         if (stoppedRef.current) break;
+
+        // Progress basé sur les chunks (pas le temps)
+        setProgress(Math.round((i / chunks.length) * 95));
 
         const res = await fetch(`${API}/api/speak-meditation`, {
           method: "POST",
@@ -216,11 +220,11 @@ Règles absolues :
         });
       }
 
+      if (timerRef.current) clearInterval(timerRef.current);
       if (!stoppedRef.current) {
         setProgress(100);
         setTimeLeft(0);
       }
-      if (timerRef.current) clearInterval(timerRef.current);
       setIsPlaying(false);
     } catch {
       setIsPlaying(false);
@@ -252,6 +256,7 @@ Règles absolues :
   };
 
   const replayMeditation = async () => {
+    if (timerRef.current) clearInterval(timerRef.current);
     setProgress(0);
     setTimeLeft(totalTime);
     stoppedRef.current = false;
