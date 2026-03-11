@@ -89,7 +89,7 @@ export default function Admin() {
     setSelectedUser(user);
     setSelectedConv(null);
     setConvSummary(null);
-    const res = await fetch(`${API}/api/admin/user-conversations/${user.id}`, { headers });
+    const res = await fetch(`${API}/api/admin/user-conversations/${user.user_id}`, { headers });
     const data = await res.json();
     setUserConvs(data.conversations || []);
   };
@@ -174,7 +174,7 @@ export default function Admin() {
                   <span style={{ flex: 1, textAlign: "center" }}>Actions</span>
                 </div>
                 {users.map(u => (
-                  <div key={u.id} style={s.tableRow} className="table-row" onClick={() => openUser(u)}>
+                  <div key={u.user_id} style={s.tableRow} className="table-row" onClick={() => openUser(u)}>
                     <span style={{ flex: 3, color: "#e8d8b8", fontSize: 13 }}>{u.email}</span>
                     <span style={{ flex: 1, textAlign: "center" }}>
                       <span style={{ ...s.badge, ...(u.plan === "premium" ? s.badgePremium : s.badgeFree) }}>
@@ -185,8 +185,8 @@ export default function Admin() {
                     <span style={{ flex: 1, textAlign: "center", color: "#a09080", fontSize: 13 }}>{u.total_conversations || 0}</span>
                     <span style={{ flex: 1, textAlign: "center" }} onClick={e => e.stopPropagation()}>
                       {u.plan !== "premium"
-                        ? <button style={s.smallBtn} onClick={() => setPremium(u.id, "premium")}>→ Premium</button>
-                        : <button style={{ ...s.smallBtn, ...s.smallBtnRed }} onClick={() => setPremium(u.id, "free")}>→ Gratuit</button>
+                        ? <button style={s.smallBtn} onClick={() => setPremium(u.user_id, "premium")}>→ Premium</button>
+                        : <button style={{ ...s.smallBtn, ...s.smallBtnRed }} onClick={() => setPremium(u.user_id, "free")}>→ Gratuit</button>
                       }
                     </span>
                   </div>
