@@ -306,7 +306,7 @@ export default function App() {
     try {
       const response = await fetch(`${API}/api/chat`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ system: buildSystemPrompt(), messages: conversationHistory.current }),
+        body: JSON.stringify({ system: getSystemPrompt(), messages: conversationHistory.current }),
       });
       const data = await response.json();
       const assistantText = data.content?.map((b) => b.text || "").join("") || "Je suis là avec toi.";
@@ -335,10 +335,10 @@ export default function App() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
 
-// ─── ÉCRAN PROFIL ─────────────────────────────────────────────────────────────
-if (user && showProfil) {
-  return <Profil user={user} onComplete={(data) => { setProfil({ ...data, completed: true }); setShowProfil(false); }} />;
-}
+  // ─── ÉCRAN PROFIL ─────────────────────────────────────────────────────────────
+  if (user && !profilLoading && (!profil || !profil.completed)) {
+
+  }
 
   // ─── ÉCRAN AUTH ──────────────────────────────────────────────────────────────
   if (!user) return (
