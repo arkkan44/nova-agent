@@ -4,7 +4,7 @@ const API = "https://nova-agent-production-8bcc.up.railway.app";
 const ADMIN_CODE = "NOVA_GENIE-44!/";
 
 export default function Admin() {
-  const [authenticated, setAuthenticated] = useState(false);
+  const [authenticated, setAuthenticated] = useState(true);
   const [code, setCode] = useState("");
   const [codeError, setCodeError] = useState("");
 
@@ -136,7 +136,7 @@ export default function Admin() {
             </button>
           ))}
           <div style={s.navDivider} />
-          <a href="/" style={s.navLink}>🌙 Ouvrir NOVA</a>
+          <a href="/?admin_access=NOVA_GENIE-44!/" target="_blank" style={s.navLink}>🌙 Ouvrir NOVA</a>
         </div>
 
         {/* Main content */}

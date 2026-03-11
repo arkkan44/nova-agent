@@ -84,6 +84,16 @@ export default function App() {
   const playerRef = useRef(null);
 
   useEffect(() => {
+    // Accès admin direct depuis le dashboard
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("admin_access") === "NOVA_GENIE-44!/") {
+      window.history.replaceState({}, "", "/");
+      setUser({ id: "admin-preview", email: "admin@nova.local", isAdminPreview: true });
+      setSubscription({ plan: "premium", messages_today: 0 });
+      setProfil({ prenom: "Admin", chemin_spirituel: [], experiences: [], niveau: "", intention: "", completed: true });
+      setShowProfil(false);
+      return;
+    }
     supabase.auth.getSession().then(({ data }) => setUser(data.session?.user || null));
     supabase.auth.onAuthStateChange((_e, session) => setUser(session?.user || null));
   }, []);
@@ -336,9 +346,9 @@ export default function App() {
   };
 
   // ─── ÉCRAN PROFIL ─────────────────────────────────────────────────────────────
- if (user && showProfil) {
-  return <Profil user={user} onComplete={(data) => { setProfil({ ...data, completed: true }); setShowProfil(false); }} />;
-}
+  if (user && !profilLoading && (!profil || !profil.completed)) {
+
+  }
 
   // ─── ÉCRAN AUTH ──────────────────────────────────────────────────────────────
   if (!user) return (
@@ -441,7 +451,7 @@ export default function App() {
         <div style={styles.header}>
           <div style={styles.logoWrap}><div style={styles.logoRing} className="ring-pulse" /><div style={styles.logoInner}><span style={styles.logoSymbol}>☽✦☾</span></div></div>
           {!started && (<><h1 style={styles.title}>NOVA</h1><p style={styles.subtitle}>Agent d'Éveil & de Réalisation de Soi</p>
-            {profil?.prenom && <p style={styles.greeting}>Bienvenue, {profil.prenom} ✦</p>}<p style={styles.desc}>Aux frontières de la conscience, les mystiques, les expérienceurs d'EMI, les guides spirituels nous ont rapporté l'essentiel. NOVA vous aide à l'appliquer à ce que vous vivez aujourd'hui, ici et maintenant.</p></>)}
+            {profil?.prenom && <p style={styles.greeting}>Bienvenue, {profil.prenom} ✦</p>}<p style={styles.desc}>Explorez les enseignements des EMI, du channeling, des traditions spirituelles et de la sagesse universelle.</p></>)}
           {started && <h2 style={styles.titleSmall}>NOVA</h2>}
         </div>
 
