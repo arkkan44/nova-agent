@@ -346,9 +346,7 @@ export default function App() {
   };
 
   // ─── ÉCRAN PROFIL ─────────────────────────────────────────────────────────────
-  if (user && !profilLoading && (!profil || !profil.completed)) {
 
-  }
 
   // ─── ÉCRAN AUTH ──────────────────────────────────────────────────────────────
   if (!user) return (
