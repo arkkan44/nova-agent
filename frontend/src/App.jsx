@@ -318,10 +318,9 @@ export default function App() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
 
-  // ─── ÉCRAN PROFIL ─────────────────────────────────────────────────────────────
-  if (user && !profilLoading && (!profil || !profil.completed)) {
-
-  }
+if (user && showProfil) {
+  return <Profil user={user} onComplete={(data) => { setProfil({ ...data, completed: true }); setShowProfil(false); }} />;
+}
 
   // ─── ÉCRAN AUTH ──────────────────────────────────────────────────────────────
   if (!user) return (
