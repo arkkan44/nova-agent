@@ -135,6 +135,8 @@ export default function Admin() {
               {tab === "stats" ? "📊 Statistiques" : tab === "users" ? "👥 Utilisateurs" : "✦ Directives"}
             </button>
           ))}
+          <div style={s.navDivider} />
+          <a href="/" style={s.navLink}>🌙 Ouvrir NOVA</a>
         </div>
 
         {/* Main content */}
@@ -277,6 +279,8 @@ const s = {
   navSub: { fontSize: 10, letterSpacing: 4, color: "#706050", textTransform: "uppercase" },
   navBtn: { background: "none", border: "none", color: "#a09080", fontFamily: "inherit", fontSize: 13, padding: "12px 24px", cursor: "pointer", textAlign: "left", transition: "all 0.2s", letterSpacing: 0.5 },
   navBtnActive: { color: "#d4a84b", background: "rgba(200,160,80,0.1)", borderRight: "2px solid #d4a84b" },
+  navDivider: { height: 1, background: "rgba(200,160,80,0.1)", margin: "16px 20px" },
+  navLink: { color: "#a09080", fontFamily: "'Palatino Linotype', serif", fontSize: 13, padding: "12px 24px", letterSpacing: 0.5, textDecoration: "none", transition: "all 0.2s", display: "block" },
   main: { flex: 1, padding: "40px 48px", overflowY: "auto" },
   section: { maxWidth: 900 },
   sectionTitle: { fontFamily: "'Cinzel', serif", fontSize: 22, fontWeight: 400, letterSpacing: 4, color: "#d4a84b", marginBottom: 24 },
@@ -322,6 +326,7 @@ const css = `
   html, body, #root { width: 100%; min-height: 100vh; }
   .table-row:hover { background: rgba(200,160,80,0.05) !important; }
   .conv-item-admin:hover { background: rgba(200,160,80,0.08) !important; border-color: rgba(200,160,80,0.3) !important; }
+  a[href="/"]:hover { color: #d4a84b !important; }
   input::placeholder { color: rgba(160,140,120,0.5); }
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
