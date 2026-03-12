@@ -153,7 +153,7 @@ export default function Meditation() {
     setProgress(0);
 
     // Simulation du chargement : ~3 secondes par chunk en moyenne
-    const estimatedMs = chunks.length * 3000;
+    const estimatedMs = chunks.length * 10000;
     const startTime = Date.now();
     const simInterval = setInterval(() => {
       const elapsed = Date.now() - startTime;
