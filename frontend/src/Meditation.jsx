@@ -93,7 +93,7 @@ export default function Meditation() {
       const url = URL.createObjectURL(blob);
       await new Promise((resolve) => {
         const audio = new Audio(url);
-        audioRef.current = audio;
+        // Ne pas écraser audioRef — l'intro a son propre objet Audio
         audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
         audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
         audio.play().catch(() => resolve());
@@ -117,8 +117,6 @@ export default function Meditation() {
     setStep("generating");
     setError("");
     stoppedRef.current = false;
-    // Jouer l'intro immédiatement pendant que Claude génère
-    playIntro();
 
     const profilInfo = profil ? `L'utilisateur s'appelle ${profil.prenom}. Son chemin spirituel : ${profil.chemin_spirituel?.join(", ") || "non précisé"}. Ses expériences : ${profil.experiences?.join(", ") || "non précisé"}.` : "";
 
@@ -145,6 +143,9 @@ Règles absolues :
 - Ne mentionne jamais de durée dans le texte`;
 
     try {
+      // Lancer l'intro en parallèle pendant que Claude génère le texte
+      playIntro();
+
       const res = await fetch(`${API}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
