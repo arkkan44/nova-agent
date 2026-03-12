@@ -313,7 +313,7 @@ Règles :
       const text = data.content?.map(b => b.text || "").join("") || "";
       if (!text) throw new Error("Texte vide");
 
-      const secs = isPsycho ? 600 : Math.round((text.split(/\s+/).length / 100) * 60);
+      const secs = isPsycho ? 300 : Math.round((text.split(/\s+/).length / 100) * 60);
       setTotalTime(secs);
       setTimeLeft(secs);
       setMeditationText(text);
