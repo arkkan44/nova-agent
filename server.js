@@ -150,7 +150,7 @@ app.post("/api/speak-meditation", async (req, res) => {
 });
 
 // ─── INTRO MÉDITATION (texte fixe, mis en cache) ─────────────────────────────
-let introAudioCache = null;
+let introAudioCache = null; // reset on deploy
 
 app.options("/api/speak-meditation-intro", (req, res) => {
   res.set({ "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" }).sendStatus(204);
@@ -162,7 +162,7 @@ app.get("/api/speak-meditation-intro", async (req, res) => {
       res.set({ "Content-Type": "audio/mpeg", "Content-Length": introAudioCache.byteLength, "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=86400" });
       return res.send(introAudioCache);
     }
-    const INTRO_TEXT = "Installez-vous confortablement... Fermez doucement les yeux... Laissez votre corps s'alourdir, s'abandonner... Vous êtes en sécurité... NOVA est là, avec vous... Respirez... simplement... profondément... Laissez chaque souffle vous porter un peu plus loin... vers l'intérieur... vers ce silence qui vous attend... toujours là... toujours présent...";
+    const INTRO_TEXT = "Installez-vous confortablement... Fermez doucement les yeux... Laissez votre corps s'alourdir, s'abandonner... Vous êtes en sécurité... NOVA est là, avec vous... Respirez... simplement... profondément... Laissez chaque souffle vous porter un peu plus loin... vers l'intérieur... vers ce silence qui vous attend... toujours là... toujours présent... Dans quelques instants... votre méditation va commencer...";
     const response = await fetch("https://api.openai.com/v1/audio/speech", {
       method: "POST",
       headers: { "Authorization": "Bearer " + process.env.OPENAI_API_KEY, "Content-Type": "application/json" },
