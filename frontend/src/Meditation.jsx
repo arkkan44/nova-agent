@@ -389,14 +389,14 @@ Règles :
                 <div style={s.loadingBarWrap}>
                   <div style={{ ...s.loadingBarFill, width: `${progress}%` }} />
                 </div>
-                <p style={s.loadingPct}>La méditation commencera dans : <span style={s.loadingPctNum}>{progress}%</span></p>
+                <p style={s.loadingPct}>Chargement : <span style={s.loadingPctNum}>{progress}%</span></p>
               </div>
             )}
             {/* Barre progression lecture */}
             {(isPlaying || wasPaused || progress === 100) && (
               <div style={s.loadingSection}>
                 <div style={s.loadingBarWrap}>
-                  <div style={{ ...s.progressFill, width: `${progress}%` }} />
+                  <div style={{ ...s.progressFill, width: `${totalTime > 0 ? Math.round(((totalTime - timeLeft) / totalTime) * 100) : 0}%` }} />
                 </div>
                 {isPlaying && totalTime > 0 && (
                   <p style={s.loadingPct}>
