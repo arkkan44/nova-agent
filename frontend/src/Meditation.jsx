@@ -136,10 +136,12 @@ Règles absolues :
 - Commence directement par guider, sans introduction
 - Utilise "vous" pour s'adresser à la personne
 - Ton doux, profond, enveloppant — comme une voix qui guide dans l'obscurité douce
-- Inclus des pauses naturelles (indique-les avec "...")
+- Les pauses et respirations sont ESSENTIELLES : utilise "..." très souvent pour créer des silences. Exemple : "Respirez... doucement... laissez aller..."
+- Entre chaque phrase importante, ajoute "..." pour laisser le temps à la personne d'intégrer
+- Les phrases doivent être courtes, séparées par des "..." fréquents
 - Adapte la profondeur spirituelle au profil
 - Termine par un retour doux à la conscience ordinaire
-- Pas de listes, pas de tirets — uniquement du texte fluide comme une rivière
+- Pas de listes, pas de tirets — uniquement du texte fluide avec beaucoup de "..."
 - Ne mentionne jamais de durée dans le texte`;
 
     try {

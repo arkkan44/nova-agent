@@ -126,7 +126,7 @@ app.post("/api/speak-meditation", async (req, res) => {
         model: "tts-1",
         voice: "shimmer",
         input: text,
-        speed: 0.85
+        speed: 1.0
       }),
     });
 
@@ -169,7 +169,7 @@ app.get("/api/speak-meditation-intro", async (req, res) => {
         model: "tts-1",
         voice: "shimmer",
         input: INTRO_TEXT,
-        speed: 0.85
+        speed: 1.0
       }),
     });
     if (!response.ok) return res.status(500).json({ error: "Erreur intro" });
