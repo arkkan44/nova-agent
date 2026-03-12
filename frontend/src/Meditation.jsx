@@ -147,44 +147,22 @@ export default function Meditation() {
     const chunks = splitText(text, 2000);
     const totalSec = duration || totalTime;
 
-    if (isMobile) {
-      // iOS : pré-charger tout l'audio AVANT de jouer
-      // Le bouton ▶ s'active quand tout est prêt
-      setAudioReady(false);
-      setProgress(0);
-      const urls = [];
-      for (let i = 0; i < chunks.length; i++) {
-        setProgress(Math.round(((i + 1) / chunks.length) * 80));
-        try {
-          const url = await speakChunk(chunks[i]);
-          urls.push(url);
-        } catch (e) { console.error("chunk fetch error:", e); }
-      }
-      audioChunksRef.current = urls;
-      setProgress(100);
-      setAudioReady(true); // Active le bouton ▶ sur mobile
-      setTotalTime(totalSec);
-      setTimeLeft(totalSec);
-    } else {
-      // Desktop : lire en streaming direct
-      stoppedRef.current = false;
-      setIsPlaying(true);
-      setProgress(0);
-      startTimer(totalSec);
-      for (let i = 0; i < chunks.length; i++) {
-        if (stoppedRef.current) break;
-        setProgress(Math.round((i / chunks.length) * 95));
-        try {
-          const url = await speakChunk(chunks[i]);
-          if (stoppedRef.current) { URL.revokeObjectURL(url); break; }
-          await playAudioUrl(url);
-          URL.revokeObjectURL(url);
-        } catch (e) { console.error("chunk error:", e); }
-      }
-      if (timerRef.current) clearInterval(timerRef.current);
-      if (!stoppedRef.current) { setProgress(100); setTimeLeft(0); }
-      setIsPlaying(false);
+    // Même comportement partout : pré-charger puis attendre le clic
+    setAudioReady(false);
+    setProgress(0);
+    const urls = [];
+    for (let i = 0; i < chunks.length; i++) {
+      setProgress(Math.round(((i + 1) / chunks.length) * 99));
+      try {
+        const url = await speakChunk(chunks[i]);
+        urls.push(url);
+      } catch (e) { console.error("chunk fetch error:", e); }
     }
+    audioChunksRef.current = urls;
+    setProgress(0); // Reset pour la barre de lecture
+    setAudioReady(true);
+    setTotalTime(totalSec);
+    setTimeLeft(totalSec);
   };
 
   // Bouton ▶ mobile : déclenché par l'utilisateur (aussi pour reprendre)
@@ -395,7 +373,13 @@ Règles :
             </div>
 
             <p style={s.playerStatus}>
-              {isPlaying ? "NOVA vous guide..." : progress === 100 ? "Méditation terminée ✦" : "Prêt à commencer"}
+              {isPlaying
+                ? "NOVA vous guide..."
+                : progress === 100
+                  ? "Méditation terminée ✦"
+                  : audioReady
+                    ? "Méditation prête ✦"
+                    : "Chargement de votre méditation..."}
             </p>
 
             <div style={s.progressBar}><div style={{ ...s.progressFill, width: `${progress}%` }} /></div>
@@ -409,10 +393,7 @@ Règles :
                   <span style={s.timerTotal}> / {Math.floor(totalTime / 60)}:{String(totalTime % 60).padStart(2, "0")}</span>
                 </div>
               )}
-              {/* Chargement mobile */}
-              {isMobile && !isPlaying && progress > 0 && progress < 100 && (
-                <p style={s.mobileLoadingText}>⏳ Préparation de l'audio... {progress}%</p>
-              )}
+
               <p style={s.meditationText}>{meditationText}</p>
             </div>
 
@@ -420,8 +401,13 @@ Règles :
             <div style={s.controls}>
               {isPlaying
                 ? <button style={s.controlBtn} className="control-btn" onClick={stopMeditation}>⏸ Pause</button>
-                : <button style={s.controlBtn} className="control-btn" onClick={launchMobileAudio}>
-                    ▶ {progress === 0 ? "Écouter" : progress === 100 ? "Réécouter" : "Reprendre"}
+                : <button
+                    style={{ ...s.controlBtn, opacity: audioReady ? 1 : 0.4 }}
+                    className={audioReady ? "control-btn" : ""}
+                    onClick={audioReady ? launchMobileAudio : undefined}
+                    disabled={!audioReady}
+                  >
+                    {!audioReady ? "⏳ Chargement..." : isPlaying ? "" : progress === 100 ? "▶ Réécouter" : "▶ Écouter"}
                   </button>
               }
               <button style={s.controlBtnSecondary} onClick={reset}>↺ Nouvelle</button>
