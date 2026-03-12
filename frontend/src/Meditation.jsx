@@ -26,6 +26,7 @@ export default function Meditation() {
   const [loadingAudio, setLoadingAudio] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [audioReady, setAudioReady] = useState(false);
+  const [wasPaused, setWasPaused] = useState(false);
   const audioChunksRef = useRef([]);
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
@@ -127,6 +128,7 @@ export default function Meditation() {
   const playChunksSequentially = async (urls, totalSec) => {
     stoppedRef.current = false;
     setIsPlaying(true);
+    setWasPaused(false);
     setProgress(0);
     startTimer(totalSec);
 
@@ -165,20 +167,15 @@ export default function Meditation() {
     setTimeLeft(totalSec);
   };
 
-  // Bouton ▶ mobile : déclenché par l'utilisateur (aussi pour reprendre)
+  // Bouton ▶ : écouter / reprendre / réécouter
   const launchMobileAudio = async () => {
-    // Re-télécharger si le cache est vide (après pause)
-    if (!audioChunksRef.current.length) {
-      const chunks = splitText(meditationText, 2000);
-      const urls = [];
-      for (let i = 0; i < chunks.length; i++) {
-        setProgress(Math.round(((i + 1) / chunks.length) * 80));
-        try { urls.push(await speakChunk(chunks[i])); } catch {}
-      }
-      audioChunksRef.current = urls;
+    // Si on a déjà les chunks en cache, jouer directement
+    if (audioChunksRef.current.length > 0) {
+      await playChunksSequentially(audioChunksRef.current, totalTime);
+      return;
     }
-    setAudioReady(false);
-    await playChunksSequentially(audioChunksRef.current, totalTime);
+    // Sinon re-télécharger (réécouter après fin)
+    await playMeditation(meditationText, totalTime);
   };
 
   const splitText = (text, maxLen) => {
@@ -203,6 +200,8 @@ export default function Meditation() {
     audioRef.current?.pause();
     if (timerRef.current) clearInterval(timerRef.current);
     setIsPlaying(false);
+    setWasPaused(true);
+    setAudioReady(true); // Garder le bouton actif
   };
 
 
@@ -288,7 +287,7 @@ Règles :
     stopMeditation();
     if (countdownRef.current) clearInterval(countdownRef.current);
     setStep("intro"); setEtat(""); setStyle(""); setIntention("");
-    setMeditationText(""); setProgress(0); setTimeLeft(0); setTotalTime(0); setCountdown(0); setAudioReady(false); audioChunksRef.current = [];
+    setMeditationText(""); setProgress(0); setTimeLeft(0); setTotalTime(0); setCountdown(0); setAudioReady(false); setWasPaused(false); audioChunksRef.current = [];
     window.history.replaceState({}, "", "/meditation");
   };
 
@@ -377,22 +376,41 @@ Règles :
                 ? "NOVA vous guide..."
                 : progress === 100
                   ? "Méditation terminée ✦"
-                  : audioReady
-                    ? "Méditation prête ✦"
-                    : "Chargement de votre méditation..."}
+                  : wasPaused
+                    ? "Méditation en pause"
+                    : audioReady
+                      ? "Méditation prête ✦"
+                      : "Chargement de votre méditation..."}
             </p>
 
-            <div style={s.progressBar}><div style={{ ...s.progressFill, width: `${progress}%` }} /></div>
+            {/* Barre chargement OU barre lecture */}
+            {!audioReady && !wasPaused && progress > 0 && (
+              <div style={s.loadingSection}>
+                <div style={s.loadingBarWrap}>
+                  <div style={{ ...s.loadingBarFill, width: `${progress}%` }} />
+                </div>
+                <p style={s.loadingPct}>La méditation commencera dans : <span style={s.loadingPctNum}>{progress}%</span></p>
+              </div>
+            )}
+            {/* Barre progression lecture */}
+            {(isPlaying || wasPaused || progress === 100) && (
+              <div style={s.loadingSection}>
+                <div style={s.loadingBarWrap}>
+                  <div style={{ ...s.progressFill, width: `${progress}%` }} />
+                </div>
+                {isPlaying && totalTime > 0 && (
+                  <p style={s.loadingPct}>
+                    <span style={s.timerText}>{Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")}</span>
+                    <span style={s.timerTotal}> restantes / {Math.floor(totalTime / 60)}:{String(totalTime % 60).padStart(2, "0")}</span>
+                  </p>
+                )}
+              </div>
+            )}
+
 
             {/* Texte */}
             <div style={s.textScroll}>
-              {/* Timer AU DESSUS du texte */}
-              {isPlaying && totalTime > 0 && (
-                <div style={s.timerInText}>
-                  <span style={s.timerText}>{Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")} restantes</span>
-                  <span style={s.timerTotal}> / {Math.floor(totalTime / 60)}:{String(totalTime % 60).padStart(2, "0")}</span>
-                </div>
-              )}
+  
 
               <p style={s.meditationText}>{meditationText}</p>
             </div>
@@ -407,7 +425,7 @@ Règles :
                     onClick={audioReady ? launchMobileAudio : undefined}
                     disabled={!audioReady}
                   >
-                    {!audioReady ? "⏳ Chargement..." : isPlaying ? "" : progress === 100 ? "▶ Réécouter" : "▶ Écouter"}
+                    {!audioReady ? "⏳ Chargement..." : wasPaused ? "▶ Reprendre" : progress === 100 ? "▶ Réécouter" : "▶ Écouter"}
                   </button>
               }
               <button style={s.controlBtnSecondary} onClick={reset}>↺ Nouvelle</button>
@@ -458,6 +476,11 @@ const s = {
   mobileLoadingText: { fontSize: 13, color: "#a09080", textAlign: "center", marginBottom: 12, letterSpacing: 1 },
   timerText: { fontSize: 16, color: "#d4a84b", letterSpacing: 1, fontVariantNumeric: "tabular-nums" },
   timerTotal: { fontSize: 12, color: "#706050" },
+  loadingSection: { width: "100%", display: "flex", flexDirection: "column", gap: 6 },
+  loadingBarWrap: { width: "100%", height: 4, background: "rgba(200,160,80,0.15)", borderRadius: 2, overflow: "hidden" },
+  loadingBarFill: { height: "100%", background: "linear-gradient(90deg, #8b5ac8, #d4a84b)", borderRadius: 2, transition: "width 0.8s ease" },
+  loadingPct: { fontSize: 12, color: "#a09080", textAlign: "center", letterSpacing: 1, margin: 0 },
+  loadingPctNum: { color: "#d4a84b", fontWeight: "600" },
   progressBar: { width: "100%", height: 3, background: "rgba(200,160,80,0.15)", borderRadius: 2, overflow: "hidden" },
   progressFill: { height: "100%", background: "linear-gradient(90deg, #b8860b, #d4a84b)", borderRadius: 2, transition: "width 1.5s ease" },
   textScroll: { width: "100%", maxHeight: 220, overflowY: "auto", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(200,160,80,0.1)", borderRadius: 16, padding: "20px" },
