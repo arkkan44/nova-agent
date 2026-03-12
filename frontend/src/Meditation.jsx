@@ -140,7 +140,7 @@ export default function Meditation() {
     }
 
     if (timerRef.current) clearInterval(timerRef.current);
-    if (!stoppedRef.current) { setProgress(100); setTimeLeft(0); }
+    if (!stoppedRef.current) { setProgress(100); setTimeLeft(0); setAudioReady(true); }
     setIsPlaying(false);
     // Ne pas vider audioChunksRef pour permettre de rejouer
   };
