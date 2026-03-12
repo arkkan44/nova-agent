@@ -30,6 +30,8 @@ export default function Meditation() {
   const [totalTime, setTotalTime] = useState(0);
   const [convId, setConvId] = useState(null);
   const [loadingReplay, setLoadingReplay] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const countdownRef = useRef(null);
   const timerRef = useRef(null);
   const audioRef = useRef(null);
   const playerRef = useRef(null);
@@ -132,6 +134,12 @@ export default function Meditation() {
     setStep("generating");
     setError("");
     stoppedRef.current = false;
+    // Décompte 30s affiché pendant le chargement
+    setCountdown(30);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    countdownRef.current = setInterval(() => {
+      setCountdown(prev => { if (prev <= 1) { clearInterval(countdownRef.current); return 0; } return prev - 1; });
+    }, 1000);
 
     const profilInfo = profil ? `L'utilisateur s'appelle ${profil.prenom}. Son chemin spirituel : ${profil.chemin_spirituel?.join(", ") || "non précisé"}. Ses expériences : ${profil.experiences?.join(", ") || "non précisé"}.` : "";
 
@@ -179,6 +187,8 @@ Règles absolues :
       setMeditationText(text);
 
       await saveMeditation(text, etat, style);
+      if (countdownRef.current) clearInterval(countdownRef.current);
+      setCountdown(0);
       setStep("player");
       await playMeditation(text, estimatedSeconds);
     } catch {
@@ -197,60 +207,53 @@ Règles absolues :
       stoppedRef.current = false;
       setProgress(0);
 
-      // Timer pour le décompte affiché
+      // Timer décompte
       if (timerRef.current) clearInterval(timerRef.current);
       const startTime = Date.now();
       const totalSec = duration || totalTime;
-      timerRef.current = setInterval(() => {
-        if (stoppedRef.current) { clearInterval(timerRef.current); return; }
-        const elapsed = Math.floor((Date.now() - startTime) / 1000);
-        const remaining = Math.max(0, totalSec - elapsed);
-        setTimeLeft(remaining);
-        if (remaining === 0) clearInterval(timerRef.current);
-      }, 1000);
+      if (totalSec > 0) {
+        timerRef.current = setInterval(() => {
+          if (stoppedRef.current) { clearInterval(timerRef.current); return; }
+          const elapsed = Math.floor((Date.now() - startTime) / 1000);
+          const remaining = Math.max(0, totalSec - elapsed);
+          setTimeLeft(remaining);
+          if (remaining === 0) clearInterval(timerRef.current);
+        }, 1000);
+      }
 
-      // Découpage en gros blocs par paragraphes
-      const chunks = splitByParagraphs(text, 4500);
+      const chunks = splitByParagraphs(text, 2000);
 
       for (let i = 0; i < chunks.length; i++) {
         if (stoppedRef.current) break;
-
-        // Progress basé sur les chunks (pas le temps)
         setProgress(Math.round((i / chunks.length) * 95));
 
+        // Convertir en base64 pour iOS Safari (blob URL pas fiable)
         const res = await fetch(`${API}/api/speak-meditation`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text: chunks[i] }),
         });
-        if (!res.ok) {
-          console.error("ElevenLabs error chunk", i, res.status, await res.text().catch(() => ""));
-          continue;
-        }
+        if (!res.ok) { console.error("TTS error chunk", i, res.status); continue; }
 
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
+        const arrayBuf = await res.arrayBuffer();
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuf)));
+        const dataUrl = "data:audio/mpeg;base64," + base64;
 
         await new Promise((resolve) => {
           if (stoppedRef.current) { resolve(); return; }
-          const audio = new Audio();
+          const audio = new Audio(dataUrl);
           audioRef.current = audio;
-          audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
-          audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
-          // iOS : assigner src après création pour garder le contexte utilisateur
-          audio.src = url;
-          audio.load();
-          audio.play().catch((e) => { console.error("play error:", e); URL.revokeObjectURL(url); resolve(); });
+          audio.oncanplaythrough = () => audio.play().catch(() => resolve());
+          audio.onended = () => resolve();
+          audio.onerror = (e) => { console.error("audio error:", e); resolve(); };
         });
       }
 
       if (timerRef.current) clearInterval(timerRef.current);
-      if (!stoppedRef.current) {
-        setProgress(100);
-        setTimeLeft(0);
-      }
+      if (!stoppedRef.current) { setProgress(100); setTimeLeft(0); }
       setIsPlaying(false);
-    } catch {
+    } catch(e) {
+      console.error("playMeditation error:", e);
       setIsPlaying(false);
     }
   };
@@ -359,7 +362,15 @@ Règles absolues :
           <div style={s.card} className="fade-in">
             <div style={s.orbeSmall} className="orbe-think"><span style={{ fontSize: 28 }}>✦</span></div>
             <p style={s.generatingText}>NOVA prépare votre méditation...</p>
-            <p style={s.generatingSubText}>Un espace sacré se crée pour vous</p>
+            {countdown > 0 ? (
+              <div style={s.countdownWrap}>
+                <p style={s.countdownLabel}>La méditation chargera dans</p>
+                <p style={s.countdownNumber}>{countdown}</p>
+                <p style={s.countdownSub}>secondes</p>
+              </div>
+            ) : (
+              <p style={s.generatingSubText}>Un espace sacré se crée pour vous</p>
+            )}
           </div>
         )}
 
@@ -424,6 +435,10 @@ const s = {
   optionBtnActive: { background: "rgba(200,160,80,0.2)", border: "1px solid rgba(200,160,80,0.7)", color: "#d4a84b", fontWeight: "600" },
   textarea: { width: "100%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(200,160,80,0.25)", borderRadius: 14, padding: "12px 16px", color: "#fff", fontFamily: "inherit", fontSize: 14, outline: "none", resize: "none", boxSizing: "border-box", lineHeight: 1.7 },
   error: { color: "#e8a060", fontSize: 13, textAlign: "center" },
+  countdownWrap: { display: "flex", flexDirection: "column", alignItems: "center", gap: 4 },
+  countdownLabel: { fontSize: 13, color: "#a09080", letterSpacing: 1, textAlign: "center" },
+  countdownNumber: { fontSize: 52, color: "#d4a84b", fontFamily: "'Cinzel', serif", lineHeight: 1, margin: "4px 0" },
+  countdownSub: { fontSize: 12, color: "#706050", letterSpacing: 2, textTransform: "uppercase" },
   generatingText: { fontSize: 18, color: "#d4a84b", letterSpacing: 2, textAlign: "center", margin: 0 },
   generatingSubText: { fontSize: 13, color: "#706050", letterSpacing: 1, textAlign: "center", margin: 0 },
   playerStatus: { fontSize: 14, letterSpacing: 2, color: "#d4a84b", textTransform: "uppercase", margin: 0 },
