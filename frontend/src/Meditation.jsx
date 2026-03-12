@@ -433,14 +433,16 @@ Règles :
             <div style={s.controls}>
               {isPlaying
                 ? <button style={s.controlBtn} className="control-btn" onClick={stopMeditation}>⏸ Pause</button>
-                : <button
-                    style={{ ...s.controlBtn, opacity: audioReady ? 1 : 0.4 }}
-                    className={audioReady ? "control-btn" : ""}
-                    onClick={audioReady ? launchMobileAudio : undefined}
-                    disabled={!audioReady}
-                  >
-                    {!audioReady ? "⏳ Chargement..." : wasPaused ? "▶ Reprendre" : progress === 100 ? "▶ Réécouter" : "▶ Écouter"}
-                  </button>
+                : progress === 100
+                  ? <button style={s.controlBtn} className="control-btn" onClick={() => { audioChunksRef.current = []; setProgress(0); setWasPaused(false); playMeditation(meditationText, totalTime); }}>▶ Réécouter</button>
+                  : <button
+                      style={{ ...s.controlBtn, opacity: audioReady ? 1 : 0.4 }}
+                      className={audioReady ? "control-btn" : ""}
+                      onClick={audioReady ? launchMobileAudio : undefined}
+                      disabled={!audioReady}
+                    >
+                      {!audioReady ? "⏳ Chargement..." : wasPaused ? "▶ Reprendre" : "▶ Écouter"}
+                    </button>
               }
               <button style={s.controlBtnSecondary} onClick={reset}>↺ Nouvelle</button>
             </div>
