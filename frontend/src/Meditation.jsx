@@ -25,6 +25,9 @@ export default function Meditation() {
   const [totalTime, setTotalTime] = useState(0);
   const [loadingAudio, setLoadingAudio] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [audioReady, setAudioReady] = useState(false);
+  const audioChunksRef = useRef([]);
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
   const audioRef = useRef(null);
   const timerRef = useRef(null);
@@ -109,14 +112,8 @@ export default function Meditation() {
   };
 
   // ─── Lecture principale ────────────────────────────────────────────────────
-  const playMeditation = async (text, duration) => {
-    stoppedRef.current = false;
-    setIsPlaying(true);
-    setProgress(0);
-
-    // Timer décompte
+  const startTimer = (totalSec) => {
     if (timerRef.current) clearInterval(timerRef.current);
-    const totalSec = duration || totalTime;
     const startTime = Date.now();
     if (totalSec > 0) {
       timerRef.current = setInterval(() => {
@@ -125,42 +122,77 @@ export default function Meditation() {
         setTimeLeft(Math.max(0, totalSec - elapsed));
       }, 1000);
     }
+  };
 
-    const chunks = splitText(text, 2000);
+  const playChunksSequentially = async (urls, totalSec) => {
+    stoppedRef.current = false;
+    setIsPlaying(true);
+    setProgress(0);
+    startTimer(totalSec);
 
-    for (let i = 0; i < chunks.length; i++) {
+    for (let i = 0; i < urls.length; i++) {
       if (stoppedRef.current) break;
-      setProgress(Math.round((i / chunks.length) * 95));
-
-      try {
-        // Pré-charger le chunk SUIVANT pendant que l'actuel joue
-        const urlPromise = speakChunk(chunks[i]);
-        const nextPromise = i + 1 < chunks.length ? speakChunk(chunks[i + 1]) : null;
-
-        const url = await urlPromise;
-        if (stoppedRef.current) { URL.revokeObjectURL(url); break; }
-
-        await playAudioUrl(url);
-        URL.revokeObjectURL(url);
-
-        // Stocker le chunk suivant pour usage immédiat
-        if (nextPromise) {
-          const nextUrl = await nextPromise;
-          if (!stoppedRef.current && i + 1 < chunks.length) {
-            setProgress(Math.round(((i + 1) / chunks.length) * 95));
-            await playAudioUrl(nextUrl);
-            URL.revokeObjectURL(nextUrl);
-            i++; // On a déjà joué le chunk i+1
-          }
-        }
-      } catch (e) {
-        console.error("chunk error:", e);
-      }
+      setProgress(Math.round((i / urls.length) * 95));
+      await playAudioUrl(urls[i]);
+      URL.revokeObjectURL(urls[i]);
     }
 
     if (timerRef.current) clearInterval(timerRef.current);
     if (!stoppedRef.current) { setProgress(100); setTimeLeft(0); }
     setIsPlaying(false);
+    audioChunksRef.current = [];
+  };
+
+  const playMeditation = async (text, duration) => {
+    const chunks = splitText(text, 2000);
+    const totalSec = duration || totalTime;
+
+    if (isMobile) {
+      // iOS : pré-charger tout l'audio AVANT de jouer
+      // Le bouton ▶ s'active quand tout est prêt
+      setAudioReady(false);
+      setProgress(0);
+      const urls = [];
+      for (let i = 0; i < chunks.length; i++) {
+        setProgress(Math.round(((i + 1) / chunks.length) * 80));
+        try {
+          const url = await speakChunk(chunks[i]);
+          urls.push(url);
+        } catch (e) { console.error("chunk fetch error:", e); }
+      }
+      audioChunksRef.current = urls;
+      setProgress(100);
+      setAudioReady(true); // Active le bouton ▶ sur mobile
+      setTotalTime(totalSec);
+      setTimeLeft(totalSec);
+    } else {
+      // Desktop : lire en streaming direct
+      stoppedRef.current = false;
+      setIsPlaying(true);
+      setProgress(0);
+      startTimer(totalSec);
+      for (let i = 0; i < chunks.length; i++) {
+        if (stoppedRef.current) break;
+        setProgress(Math.round((i / chunks.length) * 95));
+        try {
+          const url = await speakChunk(chunks[i]);
+          if (stoppedRef.current) { URL.revokeObjectURL(url); break; }
+          await playAudioUrl(url);
+          URL.revokeObjectURL(url);
+        } catch (e) { console.error("chunk error:", e); }
+      }
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (!stoppedRef.current) { setProgress(100); setTimeLeft(0); }
+      setIsPlaying(false);
+    }
+  };
+
+  // Bouton ▶ mobile : déclenché par l'utilisateur
+  const launchMobileAudio = async () => {
+    const urls = audioChunksRef.current;
+    if (!urls.length) return;
+    setAudioReady(false);
+    await playChunksSequentially(urls, totalTime);
   };
 
   const splitText = (text, maxLen) => {
@@ -274,7 +306,7 @@ Règles :
     stopMeditation();
     if (countdownRef.current) clearInterval(countdownRef.current);
     setStep("intro"); setEtat(""); setStyle(""); setIntention("");
-    setMeditationText(""); setProgress(0); setTimeLeft(0); setTotalTime(0); setCountdown(0);
+    setMeditationText(""); setProgress(0); setTimeLeft(0); setTotalTime(0); setCountdown(0); setAudioReady(false); audioChunksRef.current = [];
     window.history.replaceState({}, "", "/meditation");
   };
 
@@ -362,18 +394,28 @@ Règles :
               {isPlaying ? "NOVA vous guide..." : progress === 100 ? "Méditation terminée ✦" : "Prêt à commencer"}
             </p>
 
-            {/* Décompte PENDANT la méditation au dessus du texte */}
-            {isPlaying && totalTime > 0 && (
-              <div style={s.timerWrap}>
-                <span style={s.timerText}>{Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")} restantes</span>
-                <span style={s.timerTotal}> / {Math.floor(totalTime / 60)}:{String(totalTime % 60).padStart(2, "0")}</span>
-              </div>
-            )}
-
             <div style={s.progressBar}><div style={{ ...s.progressFill, width: `${progress}%` }} /></div>
 
             {/* Texte */}
             <div style={s.textScroll}>
+              {/* Timer AU DESSUS du texte */}
+              {(isPlaying || audioReady) && totalTime > 0 && (
+                <div style={s.timerInText}>
+                  <span style={s.timerText}>{Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")} restantes</span>
+                  <span style={s.timerTotal}> / {Math.floor(totalTime / 60)}:{String(totalTime % 60).padStart(2, "0")}</span>
+                </div>
+              )}
+              {/* Mobile : audio prêt */}
+              {isMobile && audioReady && !isPlaying && (
+                <div style={s.mobileReadyWrap}>
+                  <p style={s.mobileReadyText}>✦ L'audio est prêt</p>
+                  <button style={s.mobilePlayBtn} className="control-btn" onClick={launchMobileAudio}>▶ Lancer la méditation</button>
+                </div>
+              )}
+              {/* Chargement mobile */}
+              {isMobile && !audioReady && !isPlaying && progress > 0 && progress < 100 && (
+                <p style={s.mobileLoadingText}>⏳ Préparation de l'audio... {progress}%</p>
+              )}
               <p style={s.meditationText}>{meditationText}</p>
             </div>
 
@@ -381,7 +423,7 @@ Règles :
             <div style={s.controls}>
               {isPlaying
                 ? <button style={s.controlBtn} className="control-btn" onClick={stopMeditation}>⏸ Pause</button>
-                : <button style={s.controlBtn} className="control-btn" onClick={startPlaying}>▶ {progress > 0 && progress < 100 ? "Reprendre" : "Écouter"}</button>
+                : !isMobile && <button style={s.controlBtn} className="control-btn" onClick={startPlaying}>▶ {progress > 0 && progress < 100 ? "Reprendre" : "Écouter"}</button>
               }
               <button style={s.controlBtnSecondary} onClick={reset}>↺ Nouvelle</button>
             </div>
@@ -424,6 +466,11 @@ const s = {
   countdownSub: { fontSize: 11, color: "#706050", letterSpacing: 3, textTransform: "uppercase", margin: 0 },
   playerStatus: { fontSize: 13, letterSpacing: 2, color: "#d4a84b", textTransform: "uppercase", margin: 0 },
   timerWrap: { display: "flex", alignItems: "baseline", gap: 4 },
+  timerInText: { display: "flex", alignItems: "baseline", gap: 4, marginBottom: 12, paddingBottom: 10, borderBottom: "1px solid rgba(200,160,80,0.15)" },
+  mobileReadyWrap: { display: "flex", flexDirection: "column", alignItems: "center", gap: 10, marginBottom: 16, padding: "14px", background: "rgba(200,160,80,0.08)", borderRadius: 12, border: "1px solid rgba(200,160,80,0.3)" },
+  mobileReadyText: { fontSize: 13, color: "#d4a84b", letterSpacing: 1, margin: 0 },
+  mobilePlayBtn: { background: "linear-gradient(135deg, #b8860b, #d4a84b)", border: "none", borderRadius: 24, padding: "12px 28px", color: "#0a0800", fontFamily: "inherit", fontSize: 14, fontWeight: "700", cursor: "pointer", letterSpacing: 1 },
+  mobileLoadingText: { fontSize: 13, color: "#a09080", textAlign: "center", marginBottom: 12, letterSpacing: 1 },
   timerText: { fontSize: 16, color: "#d4a84b", letterSpacing: 1, fontVariantNumeric: "tabular-nums" },
   timerTotal: { fontSize: 12, color: "#706050" },
   progressBar: { width: "100%", height: 3, background: "rgba(200,160,80,0.15)", borderRadius: 2, overflow: "hidden" },
