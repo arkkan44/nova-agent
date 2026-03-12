@@ -181,12 +181,14 @@ export default function Meditation() {
 
   // Bouton ▶ : écouter / reprendre / réécouter
   const launchMobileAudio = async () => {
+    setProgress(0);
+    setWasPaused(false);
     // Si on a déjà les chunks en cache, jouer directement
     if (audioChunksRef.current.length > 0) {
       await playChunksSequentially(audioChunksRef.current, totalTime);
       return;
     }
-    // Sinon re-télécharger (réécouter après fin)
+    // Sinon re-télécharger
     await playMeditation(meditationText, totalTime);
   };
 
