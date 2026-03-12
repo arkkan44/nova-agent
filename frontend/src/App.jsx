@@ -447,12 +447,21 @@ export default function App() {
           <div style={styles.meditationsSection}>
             <p style={styles.meditationsSectionTitle}>🧘 Méditations</p>
             {meditations.map(m => (
-              <a key={m.id} href={`/meditation?id=${m.id}`} style={styles.meditationItem} className="meditation-item">
-                <div style={styles.convInfo}>
-                  <span style={styles.convTitle}>{m.title.replace("🧘 ", "")}</span>
-                  <span style={styles.convDate}>{new Date(m.updated_at).toLocaleDateString("fr-FR")}</span>
-                </div>
-              </a>
+              <div key={m.id} style={styles.meditationItemWrap}>
+                <a href={`/meditation?id=${m.id}`} style={styles.meditationItem} className="meditation-item">
+                  <div style={styles.convInfo}>
+                    <span style={styles.convTitle}>{m.title.replace("🧘 ", "")}</span>
+                    <span style={styles.convDate}>{new Date(m.updated_at).toLocaleDateString("fr-FR")}</span>
+                  </div>
+                </a>
+                <button style={styles.deleteBtn} className="delete-btn" onClick={async (e) => {
+                  e.stopPropagation();
+                  if (!confirm("Supprimer cette méditation ?\nCette action est irréversible.")) return;
+                  await supabase.from("messages").delete().eq("conversation_id", m.id);
+                  await supabase.from("conversations").delete().eq("id", m.id);
+                  loadMeditations();
+                }} title="Supprimer">✕</button>
+              </div>
             ))}
           </div>
         )}
@@ -559,7 +568,8 @@ const styles = {
   deleteBtn: { background: "rgba(200,60,60,0.08)", border: "1px solid rgba(200,60,60,0.2)", borderRadius: 8, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#c06060", fontSize: 11, flexShrink: 0, transition: "all 0.2s" },
   meditationsSection: { borderTop: "1px solid rgba(139,90,200,0.2)", padding: "12px 8px 0" },
   meditationsSectionTitle: { fontSize: 11, letterSpacing: 2, color: "#9070c0", textTransform: "uppercase", padding: "0 8px", marginBottom: 8 },
-  meditationItem: { display: "block", background: "transparent", border: "1px solid transparent", borderRadius: 12, padding: "10px 12px", color: "#c8bcac", cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "all 0.2s", marginBottom: 4, textDecoration: "none" },
+  meditationItemWrap: { display: "flex", alignItems: "center", gap: 4 },
+  meditationItem: { display: "block", flex: 1, background: "transparent", border: "1px solid transparent", borderRadius: 12, padding: "10px 12px", color: "#c8bcac", cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "all 0.2s", marginBottom: 4, textDecoration: "none" },
   sidebarFooter: { padding: "16px 20px", borderTop: "1px solid rgba(200,160,80,0.1)", display: "flex", flexDirection: "column", gap: 10 },
   planBadge: { fontSize: 12, color: "#d4a84b", letterSpacing: 0.5 },
   logoutBtn: { background: "none", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 20, padding: "8px 16px", color: "#a09080", fontFamily: "inherit", fontSize: 12, cursor: "pointer", transition: "all 0.3s" },
