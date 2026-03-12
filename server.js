@@ -150,7 +150,7 @@ app.post("/api/speak-meditation", async (req, res) => {
 });
 
 // ─── INTRO MÉDITATION (texte fixe, mis en cache) ─────────────────────────────
-let introAudioCache = null; // reset on deploy
+let introAudioCache = null;
 
 app.options("/api/speak-meditation-intro", (req, res) => {
   res.set({ "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" }).sendStatus(204);
@@ -158,6 +158,8 @@ app.options("/api/speak-meditation-intro", (req, res) => {
 
 app.get("/api/speak-meditation-intro", async (req, res) => {
   try {
+    // Forcer regeneration si ?reset=1
+    if (req.query.reset) introAudioCache = null;
     if (introAudioCache) {
       res.set({ "Content-Type": "audio/mpeg", "Content-Length": introAudioCache.byteLength, "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=86400" });
       return res.send(introAudioCache);
