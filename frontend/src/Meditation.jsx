@@ -8,34 +8,29 @@ const API = "https://nova-agent-production-8bcc.up.railway.app";
 
 const ETATS = ["Anxieux / Stressé", "Triste ou lourd", "Agité / Dispersé", "Fatigué", "En quête de clarté", "Bien, je veux approfondir"];
 const STYLES = ["Pleine conscience", "Visualisation", "Non-dualité / Présence", "Souffle & Corps", "Lâcher-prise"];
-
-const PARTICLES = Array.from({ length: 12 }, (_, i) => ({
-  id: i, x: Math.random() * 100, y: Math.random() * 100,
-  size: Math.random() * 2 + 1, duration: Math.random() * 20 + 10, delay: Math.random() * 10,
-}));
+const PARTICLES = Array.from({ length: 12 }, (_, i) => ({ id: i, x: Math.random() * 100, y: Math.random() * 100, size: Math.random() * 2 + 1, duration: Math.random() * 20 + 10, delay: Math.random() * 10 }));
 
 export default function Meditation() {
   const [user, setUser] = useState(null);
   const [profil, setProfil] = useState(null);
-  const [step, setStep] = useState("intro"); // intro | form | generating | player
+  const [step, setStep] = useState("intro");
   const [etat, setEtat] = useState("");
   const [style, setStyle] = useState("");
   const [intention, setIntention] = useState("");
   const [meditationText, setMeditationText] = useState("");
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [progress, setProgress] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
   const [totalTime, setTotalTime] = useState(0);
-  const [convId, setConvId] = useState(null);
-  const [loadingReplay, setLoadingReplay] = useState(false);
+  const [loadingAudio, setLoadingAudio] = useState(false);
   const [countdown, setCountdown] = useState(0);
-  const countdownRef = useRef(null);
-  const timerRef = useRef(null);
+
   const audioRef = useRef(null);
-  const playerRef = useRef(null);
+  const timerRef = useRef(null);
+  const countdownRef = useRef(null);
   const stoppedRef = useRef(false);
+  const playerRef = useRef(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -43,8 +38,6 @@ export default function Meditation() {
       setUser(u);
       if (u) loadProfil(u.id);
     });
-
-    // Charger une méditation existante si ?id= dans l'URL
     const params = new URLSearchParams(window.location.search);
     const medId = params.get("id");
     if (medId) loadExistingMeditation(medId);
@@ -75,207 +68,116 @@ export default function Meditation() {
     if (msgs?.content) {
       const text = msgs.content;
       setMeditationText(text);
-      const wordCount = text.split(/\s+/).length;
-      const estimatedSeconds = Math.round((wordCount / 100) * 60);
-      setTotalTime(estimatedSeconds);
-      setTimeLeft(estimatedSeconds);
-      setProgress(0);   // toujours à 0 au chargement
-      setConvId(id);
+      const secs = Math.round((text.split(/\s+/).length / 100) * 60);
+      setTotalTime(secs);
+      setTimeLeft(secs);
+      setProgress(0);
       setStep("player");
     } else {
       setStep("intro");
     }
   };
 
-  const playIntro = async () => {
-    try {
-      console.log("🎵 Intro: fetch start");
-      const res = await fetch(`${API}/api/speak-meditation-intro`);
-      console.log("🎵 Intro: response", res.status, res.ok);
-      if (!res.ok) return;
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      await new Promise((resolve) => {
-        const audio = new Audio(url);
-        // Ne pas écraser audioRef — l'intro a son propre objet Audio
-        audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
-        audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
-        audio.play()
-          .then(() => console.log("🎵 Intro: playing"))
-          .catch((e) => { console.error("🎵 Intro play error:", e); resolve(); });
-      });
-    } catch(e) { console.error("🎵 Intro catch:", e); }
-  };
-
   const saveMeditation = async (text, etatChoisi, styleChoisi) => {
-    if (!user || user.isAdminPreview) return null;
+    if (!user || user.isAdminPreview) return;
     const title = "🧘 " + etatChoisi + " — " + styleChoisi;
     const { data: conv } = await supabase.from("conversations").insert({ user_id: user.id, title }).select().single();
-    if (!conv) return null;
-    setConvId(conv.id);
+    if (!conv) return;
     await supabase.from("messages").insert({ conversation_id: conv.id, role: "assistant", content: text });
     await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", conv.id);
-    return conv.id;
   };
 
-  const generateMeditation = async () => {
-    // iOS Safari : débloquer le contexte audio immédiatement au clic
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const buf = ctx.createBuffer(1, 1, 22050);
-      const src = ctx.createBufferSource();
-      src.buffer = buf;
-      src.connect(ctx.destination);
-      src.start(0);
-      setTimeout(() => ctx.close(), 100);
-    } catch {}
+  // ─── Jouer un chunk audio via URL directe ─────────────────────────────────
+  const playAudioUrl = (url) => new Promise((resolve) => {
+    const audio = new Audio(url);
+    audioRef.current = audio;
+    audio.onended = resolve;
+    audio.onerror = resolve;
+    audio.play().catch(resolve);
+  });
 
-    setIsLoading(true);
-    setStep("generating");
-    setError("");
-    stoppedRef.current = false;
-    // Décompte 30s affiché pendant le chargement
-    setCountdown(30);
-    if (countdownRef.current) clearInterval(countdownRef.current);
-    countdownRef.current = setInterval(() => {
-      setCountdown(prev => { if (prev <= 1) { clearInterval(countdownRef.current); return 0; } return prev - 1; });
-    }, 1000);
-
-    const profilInfo = profil ? `L'utilisateur s'appelle ${profil.prenom}. Son chemin spirituel : ${profil.chemin_spirituel?.join(", ") || "non précisé"}. Ses expériences : ${profil.experiences?.join(", ") || "non précisé"}.` : "";
-
-    const prompt = `Tu es NOVA, guide spirituel profond et bienveillant. Génère une méditation guidée personnalisée.
-
-${profilInfo}
-
-État actuel de la personne : ${etat}
-Style de méditation souhaité : ${style}
-Intention : ${intention || "s'ouvrir à la paix intérieure"}
-
-Génère une méditation guidée complète en français. NOVA décide de la durée selon l'état (entre 5 et 15 minutes de lecture à voix haute).
-
-Règles absolues :
-- Commence directement par guider, sans introduction
-- Utilise "vous" pour s'adresser à la personne
-- Ton doux, profond, enveloppant — comme une voix qui guide dans l'obscurité douce
-- Les pauses et respirations sont ESSENTIELLES : utilise "..." très souvent pour créer des silences. Exemple : "Respirez... doucement... laissez aller..."
-- Entre chaque phrase importante, ajoute "..." pour laisser le temps à la personne d'intégrer
-- Les phrases doivent être courtes, séparées par des "..." fréquents
-- Adapte la profondeur spirituelle au profil
-- Termine par un retour doux à la conscience ordinaire
-- Pas de listes, pas de tirets — uniquement du texte fluide avec beaucoup de "..."
-- Ne mentionne jamais de durée dans le texte`;
-
-    try {
-      // Lancer l'intro en parallèle pendant que Claude génère le texte
-      playIntro();
-
-      const res = await fetch(`${API}/api/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          system: "Tu es NOVA, un guide spirituel. Tu génères des méditations guidées profondes et personnalisées en français.",
-          messages: [{ role: "user", content: prompt }]
-        }),
-      });
-      const data = await res.json();
-      const text = data.content?.map(b => b.text || "").join("") || "";
-
-      const wordCount = text.split(/\s+/).length;
-      const estimatedSeconds = Math.round((wordCount / 100) * 60);
-      setTotalTime(estimatedSeconds);
-      setTimeLeft(estimatedSeconds);
-      setMeditationText(text);
-
-      await saveMeditation(text, etat, style);
-      if (countdownRef.current) clearInterval(countdownRef.current);
-      setCountdown(0);
-      setStep("player");
-      await playMeditation(text, estimatedSeconds);
-    } catch {
-      setError("Erreur lors de la génération. Réessaie.");
-      setStep("form");
-    }
-    setIsLoading(false);
+  // ─── TTS un chunk ─────────────────────────────────────────────────────────
+  const speakChunk = async (text) => {
+    const res = await fetch(`${API}/api/speak-meditation`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) throw new Error("TTS error " + res.status);
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
   };
 
-  // ─── LECTURE AUDIO SANS BLANCS ────────────────────────────────────────────
-  // On envoie le texte complet en une seule requête ElevenLabs (max ~4500 chars)
-  // Si le texte est plus long, on découpe en 2-3 paragraphes naturels (pas de phrases)
+  // ─── Lecture principale ────────────────────────────────────────────────────
   const playMeditation = async (text, duration) => {
-    try {
-      setIsPlaying(true);
-      stoppedRef.current = false;
-      setProgress(0);
+    stoppedRef.current = false;
+    setIsPlaying(true);
+    setProgress(0);
 
-      // Timer décompte
-      if (timerRef.current) clearInterval(timerRef.current);
-      const startTime = Date.now();
-      const totalSec = duration || totalTime;
-      if (totalSec > 0) {
-        timerRef.current = setInterval(() => {
-          if (stoppedRef.current) { clearInterval(timerRef.current); return; }
-          const elapsed = Math.floor((Date.now() - startTime) / 1000);
-          const remaining = Math.max(0, totalSec - elapsed);
-          setTimeLeft(remaining);
-          if (remaining === 0) clearInterval(timerRef.current);
-        }, 1000);
-      }
-
-      const chunks = splitByParagraphs(text, 2000);
-
-      for (let i = 0; i < chunks.length; i++) {
-        if (stoppedRef.current) break;
-        setProgress(Math.round((i / chunks.length) * 95));
-
-        // Convertir en base64 pour iOS Safari (blob URL pas fiable)
-        const res = await fetch(`${API}/api/speak-meditation`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: chunks[i] }),
-        });
-        if (!res.ok) { console.error("TTS error chunk", i, res.status); continue; }
-
-        const arrayBuf = await res.arrayBuffer();
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuf)));
-        const dataUrl = "data:audio/mpeg;base64," + base64;
-
-        await new Promise((resolve) => {
-          if (stoppedRef.current) { resolve(); return; }
-          const audio = new Audio(dataUrl);
-          audioRef.current = audio;
-          audio.oncanplaythrough = () => audio.play().catch(() => resolve());
-          audio.onended = () => resolve();
-          audio.onerror = (e) => { console.error("audio error:", e); resolve(); };
-        });
-      }
-
-      if (timerRef.current) clearInterval(timerRef.current);
-      if (!stoppedRef.current) { setProgress(100); setTimeLeft(0); }
-      setIsPlaying(false);
-    } catch(e) {
-      console.error("playMeditation error:", e);
-      setIsPlaying(false);
+    // Timer décompte
+    if (timerRef.current) clearInterval(timerRef.current);
+    const totalSec = duration || totalTime;
+    const startTime = Date.now();
+    if (totalSec > 0) {
+      timerRef.current = setInterval(() => {
+        if (stoppedRef.current) return;
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        setTimeLeft(Math.max(0, totalSec - elapsed));
+      }, 1000);
     }
+
+    const chunks = splitText(text, 2000);
+
+    for (let i = 0; i < chunks.length; i++) {
+      if (stoppedRef.current) break;
+      setProgress(Math.round((i / chunks.length) * 95));
+
+      try {
+        // Pré-charger le chunk SUIVANT pendant que l'actuel joue
+        const urlPromise = speakChunk(chunks[i]);
+        const nextPromise = i + 1 < chunks.length ? speakChunk(chunks[i + 1]) : null;
+
+        const url = await urlPromise;
+        if (stoppedRef.current) { URL.revokeObjectURL(url); break; }
+
+        await playAudioUrl(url);
+        URL.revokeObjectURL(url);
+
+        // Stocker le chunk suivant pour usage immédiat
+        if (nextPromise) {
+          const nextUrl = await nextPromise;
+          if (!stoppedRef.current && i + 1 < chunks.length) {
+            setProgress(Math.round(((i + 1) / chunks.length) * 95));
+            await playAudioUrl(nextUrl);
+            URL.revokeObjectURL(nextUrl);
+            i++; // On a déjà joué le chunk i+1
+          }
+        }
+      } catch (e) {
+        console.error("chunk error:", e);
+      }
+    }
+
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (!stoppedRef.current) { setProgress(100); setTimeLeft(0); }
+    setIsPlaying(false);
   };
 
-  // Découpage par blocs de 2000 chars max pour ElevenLabs
-  const splitByParagraphs = (text, maxLen) => {
-    const limit = Math.min(maxLen, 2000);
-    if (text.length <= limit) return [text];
+  const splitText = (text, maxLen) => {
+    if (text.length <= maxLen) return [text];
     const chunks = [];
     let remaining = text;
     while (remaining.length > 0) {
-      if (remaining.length <= limit) { chunks.push(remaining); break; }
-      // Chercher une coupure naturelle avant la limite
-      let cutAt = limit;
-      const naturalBreak = remaining.lastIndexOf("...", limit);
-      const sentBreak = remaining.lastIndexOf(". ", limit);
-      if (naturalBreak > limit * 0.5) cutAt = naturalBreak + 3;
-      else if (sentBreak > limit * 0.5) cutAt = sentBreak + 1;
-      chunks.push(remaining.substring(0, cutAt).trim());
-      remaining = remaining.substring(cutAt).trim();
+      if (remaining.length <= maxLen) { chunks.push(remaining); break; }
+      let cut = maxLen;
+      const d = remaining.lastIndexOf("...", maxLen);
+      const p = remaining.lastIndexOf(". ", maxLen);
+      if (d > maxLen * 0.6) cut = d + 3;
+      else if (p > maxLen * 0.6) cut = p + 1;
+      chunks.push(remaining.substring(0, cut).trim());
+      remaining = remaining.substring(cut).trim();
     }
-    return chunks.length ? chunks : [text];
+    return chunks;
   };
 
   const stopMeditation = () => {
@@ -285,19 +187,94 @@ Règles absolues :
     setIsPlaying(false);
   };
 
-  const replayMeditation = async () => {
-    if (timerRef.current) clearInterval(timerRef.current);
+  const startPlaying = async () => {
     setProgress(0);
     setTimeLeft(totalTime);
-    stoppedRef.current = false;
     await playMeditation(meditationText, totalTime);
+  };
+
+  const generateMeditation = async () => {
+    // Débloquer AudioContext iOS au moment du clic
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const buf = ctx.createBuffer(1, 1, 22050);
+      const src = ctx.createBufferSource();
+      src.buffer = buf; src.connect(ctx.destination); src.start(0);
+      setTimeout(() => ctx.close(), 500);
+    } catch {}
+
+    setStep("generating");
+    setError("");
+    stoppedRef.current = false;
+
+    // Intro audio en parallèle
+    fetch(`${API}/api/speak-meditation-intro`)
+      .then(r => r.ok ? r.blob() : null)
+      .then(blob => { if (!blob) return; const url = URL.createObjectURL(blob); playAudioUrl(url).then(() => URL.revokeObjectURL(url)); })
+      .catch(() => {});
+
+    // Décompte affiché PENDANT la génération
+    setCountdown(30);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    countdownRef.current = setInterval(() => {
+      setCountdown(prev => { if (prev <= 1) { clearInterval(countdownRef.current); return 0; } return prev - 1; });
+    }, 1000);
+
+    const profilInfo = profil ? `L'utilisateur s'appelle ${profil.prenom}. Chemin : ${profil.chemin_spirituel?.join(", ")||"libre"}. Expériences : ${profil.experiences?.join(", ")||"aucune précisée"}.` : "";
+    const prompt = `Tu es NOVA, guide spirituel profond et bienveillant. Génère une méditation guidée personnalisée en français.
+
+${profilInfo}
+État : ${etat}
+Style : ${style}
+Intention : ${intention || "s'ouvrir à la paix intérieure"}
+
+Règles :
+- Commence directement par guider, sans introduction
+- Utilise "vous"
+- Ton doux, profond, enveloppant
+- Utilise "..." très souvent pour créer des silences naturels
+- Phrases courtes séparées par des "..."
+- Adapte au profil spirituel
+- Termine par un retour doux
+- Texte fluide, pas de listes
+- Ne mentionne pas la durée`;
+
+    try {
+      const res = await fetch(`${API}/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system: "Tu es NOVA, guide spirituel. Tu génères des méditations guidées profondes en français.",
+          messages: [{ role: "user", content: prompt }]
+        }),
+      });
+      const data = await res.json();
+      const text = data.content?.map(b => b.text || "").join("") || "";
+      if (!text) throw new Error("Texte vide");
+
+      const secs = Math.round((text.split(/\s+/).length / 100) * 60);
+      setTotalTime(secs);
+      setTimeLeft(secs);
+      setMeditationText(text);
+      if (countdownRef.current) clearInterval(countdownRef.current);
+      setCountdown(0);
+
+      await saveMeditation(text, etat, style);
+      setStep("player");
+      await playMeditation(text, secs);
+    } catch (e) {
+      console.error("generate error:", e);
+      setError("Erreur lors de la génération. Réessaie.");
+      setStep("form");
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    }
   };
 
   const reset = () => {
     stopMeditation();
-    setStep("intro");
-    setEtat(""); setStyle(""); setIntention("");
-    setMeditationText(""); setProgress(0); setTimeLeft(0); setTotalTime(0); setConvId(null);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    setStep("intro"); setEtat(""); setStyle(""); setIntention("");
+    setMeditationText(""); setProgress(0); setTimeLeft(0); setTotalTime(0); setCountdown(0);
     window.history.replaceState({}, "", "/meditation");
   };
 
@@ -321,6 +298,7 @@ Règles absolues :
 
       <div style={s.center}>
 
+        {/* INTRO */}
         {step === "intro" && (
           <div style={s.card} className="fade-in">
             <div style={s.orbeSmall} className="orbe-idle"><span style={{ fontSize: 32 }}>🧘</span></div>
@@ -330,6 +308,7 @@ Règles absolues :
           </div>
         )}
 
+        {/* FORM */}
         {step === "form" && (
           <div style={s.card} className="fade-in">
             <h2 style={s.formTitle}>Comment vous sentez-vous<br />en ce moment ?</h2>
@@ -349,8 +328,7 @@ Règles absolues :
               ))}
             </div>
             <h2 style={{ ...s.formTitle, marginTop: 28 }}>Une intention ? <span style={{ color: "#706050", fontSize: 13 }}>(optionnel)</span></h2>
-            <textarea style={s.textarea} placeholder="Ex: trouver la paix, lâcher le mental, m'ouvrir à l'amour..."
-              value={intention} onChange={e => setIntention(e.target.value)} rows={2} />
+            <textarea style={s.textarea} placeholder="Ex: trouver la paix, lâcher le mental..." value={intention} onChange={e => setIntention(e.target.value)} rows={2} />
             {error && <p style={s.error}>{error}</p>}
             <button style={{ ...s.startBtn, opacity: etat && style ? 1 : 0.4, marginTop: 28 }} className={etat && style ? "start-btn" : ""} onClick={generateMeditation} disabled={!etat || !style}>
               Générer ma méditation ✦
@@ -358,48 +336,52 @@ Règles absolues :
           </div>
         )}
 
+        {/* GENERATING */}
         {step === "generating" && (
           <div style={s.card} className="fade-in">
             <div style={s.orbeSmall} className="orbe-think"><span style={{ fontSize: 28 }}>✦</span></div>
             <p style={s.generatingText}>NOVA prépare votre méditation...</p>
-            {countdown > 0 ? (
+            {countdown > 0 && (
               <div style={s.countdownWrap}>
-                <p style={s.countdownLabel}>La méditation chargera dans</p>
+                <p style={s.countdownLabel}>La méditation commencera dans</p>
                 <p style={s.countdownNumber}>{countdown}</p>
                 <p style={s.countdownSub}>secondes</p>
               </div>
-            ) : (
-              <p style={s.generatingSubText}>Un espace sacré se crée pour vous</p>
             )}
           </div>
         )}
 
+        {/* PLAYER */}
         {step === "player" && (
           <div style={s.playerCard} className="fade-in">
             <div style={s.orbe} className={isPlaying ? "orbe-speak" : "orbe-idle"}>
               <span style={{ fontSize: 36 }}>{isPlaying ? "✦" : "🧘"}</span>
             </div>
-            <p style={s.playerStatus}>{isPlaying ? "NOVA vous guide..." : progress === 100 ? "Méditation terminée ✦" : "Prêt à commencer"}</p>
 
-            {totalTime > 0 && (
+            <p style={s.playerStatus}>
+              {isPlaying ? "NOVA vous guide..." : progress === 100 ? "Méditation terminée ✦" : "Prêt à commencer"}
+            </p>
+
+            {/* Décompte PENDANT la méditation au dessus du texte */}
+            {isPlaying && totalTime > 0 && (
               <div style={s.timerWrap}>
-                <span style={s.timerText}>
-                  {progress === 100 ? "✦ Terminée" : `${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, "0")} restantes`}
-                </span>
+                <span style={s.timerText}>{Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")} restantes</span>
                 <span style={s.timerTotal}> / {Math.floor(totalTime / 60)}:{String(totalTime % 60).padStart(2, "0")}</span>
               </div>
             )}
 
             <div style={s.progressBar}><div style={{ ...s.progressFill, width: `${progress}%` }} /></div>
 
+            {/* Texte */}
             <div style={s.textScroll}>
               <p style={s.meditationText}>{meditationText}</p>
             </div>
 
+            {/* Contrôles */}
             <div style={s.controls}>
               {isPlaying
                 ? <button style={s.controlBtn} className="control-btn" onClick={stopMeditation}>⏸ Pause</button>
-                : <button style={s.controlBtn} className="control-btn" onClick={replayMeditation}>{progress > 0 && progress < 100 ? "▶ Reprendre" : "▶ Écouter"}</button>
+                : <button style={s.controlBtn} className="control-btn" onClick={startPlaying}>▶ {progress > 0 && progress < 100 ? "Reprendre" : "Écouter"}</button>
               }
               <button style={s.controlBtnSecondary} onClick={reset}>↺ Nouvelle</button>
             </div>
@@ -423,7 +405,7 @@ const s = {
   headerTitle: { fontFamily: "'Cinzel', serif", fontSize: 14, letterSpacing: 6, color: "#d4a84b" },
   center: { position: "relative", zIndex: 3, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "100px 24px 40px", width: "100%", maxWidth: 600 },
   card: { background: "rgba(0,0,0,0.55)", backdropFilter: "blur(24px)", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 28, padding: "40px 36px", width: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 },
-  playerCard: { background: "rgba(0,0,0,0.55)", backdropFilter: "blur(24px)", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 28, padding: "36px 28px", width: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 },
+  playerCard: { background: "rgba(0,0,0,0.55)", backdropFilter: "blur(24px)", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 28, padding: "36px 28px", width: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 },
   orbeSmall: { width: 100, height: 100, borderRadius: "50%", background: "radial-gradient(circle, rgba(139,90,200,0.3) 0%, rgba(200,160,80,0.15) 100%)", border: "1px solid rgba(200,160,80,0.4)", display: "flex", alignItems: "center", justifyContent: "center" },
   orbe: { width: 140, height: 140, borderRadius: "50%", background: "radial-gradient(circle, rgba(139,90,200,0.3) 0%, rgba(200,160,80,0.15) 100%)", border: "2px solid rgba(200,160,80,0.5)", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.5s" },
   title: { fontFamily: "'Cinzel', serif", fontSize: 28, fontWeight: 400, letterSpacing: 8, color: "#d4a84b", margin: 0, textAlign: "center" },
@@ -435,18 +417,17 @@ const s = {
   optionBtnActive: { background: "rgba(200,160,80,0.2)", border: "1px solid rgba(200,160,80,0.7)", color: "#d4a84b", fontWeight: "600" },
   textarea: { width: "100%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(200,160,80,0.25)", borderRadius: 14, padding: "12px 16px", color: "#fff", fontFamily: "inherit", fontSize: 14, outline: "none", resize: "none", boxSizing: "border-box", lineHeight: 1.7 },
   error: { color: "#e8a060", fontSize: 13, textAlign: "center" },
-  countdownWrap: { display: "flex", flexDirection: "column", alignItems: "center", gap: 4 },
-  countdownLabel: { fontSize: 13, color: "#a09080", letterSpacing: 1, textAlign: "center" },
-  countdownNumber: { fontSize: 52, color: "#d4a84b", fontFamily: "'Cinzel', serif", lineHeight: 1, margin: "4px 0" },
-  countdownSub: { fontSize: 12, color: "#706050", letterSpacing: 2, textTransform: "uppercase" },
   generatingText: { fontSize: 18, color: "#d4a84b", letterSpacing: 2, textAlign: "center", margin: 0 },
-  generatingSubText: { fontSize: 13, color: "#706050", letterSpacing: 1, textAlign: "center", margin: 0 },
-  playerStatus: { fontSize: 14, letterSpacing: 2, color: "#d4a84b", textTransform: "uppercase", margin: 0 },
-  timerWrap: { display: "flex", alignItems: "center", gap: 4 },
+  countdownWrap: { display: "flex", flexDirection: "column", alignItems: "center", gap: 2, marginTop: 8 },
+  countdownLabel: { fontSize: 13, color: "#a09080", letterSpacing: 1, textAlign: "center", margin: 0 },
+  countdownNumber: { fontSize: 56, color: "#d4a84b", fontFamily: "'Cinzel', serif", lineHeight: 1, margin: "4px 0" },
+  countdownSub: { fontSize: 11, color: "#706050", letterSpacing: 3, textTransform: "uppercase", margin: 0 },
+  playerStatus: { fontSize: 13, letterSpacing: 2, color: "#d4a84b", textTransform: "uppercase", margin: 0 },
+  timerWrap: { display: "flex", alignItems: "baseline", gap: 4 },
   timerText: { fontSize: 16, color: "#d4a84b", letterSpacing: 1, fontVariantNumeric: "tabular-nums" },
-  timerTotal: { fontSize: 12, color: "#706050", letterSpacing: 0.5 },
+  timerTotal: { fontSize: 12, color: "#706050" },
   progressBar: { width: "100%", height: 3, background: "rgba(200,160,80,0.15)", borderRadius: 2, overflow: "hidden" },
-  progressFill: { height: "100%", background: "linear-gradient(90deg, #b8860b, #d4a84b)", borderRadius: 2, transition: "width 1s ease" },
+  progressFill: { height: "100%", background: "linear-gradient(90deg, #b8860b, #d4a84b)", borderRadius: 2, transition: "width 1.5s ease" },
   textScroll: { width: "100%", maxHeight: 220, overflowY: "auto", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(200,160,80,0.1)", borderRadius: 16, padding: "20px" },
   meditationText: { fontSize: 14, lineHeight: 2, color: "#c8bcac", margin: 0, whiteSpace: "pre-wrap" },
   controls: { display: "flex", gap: 12, alignItems: "center" },
