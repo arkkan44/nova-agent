@@ -71,12 +71,13 @@ export default function Meditation() {
     const { data: msgs } = await supabase.from("messages").select("content").eq("conversation_id", id).single();
     if (msgs?.content) {
       const text = msgs.content;
-      setMeditationText(text);
       const secs = Math.round((text.split(/\s+/).length / 100) * 60);
+      setMeditationText(text);
       setTotalTime(secs);
       setTimeLeft(secs);
       setProgress(0);
       setStep("player");
+      await playMeditation(text, secs);
     } else {
       setStep("intro");
     }
