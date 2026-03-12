@@ -154,10 +154,11 @@ export default function Meditation() {
     setProgress(0);
     const urls = [];
     for (let i = 0; i < chunks.length; i++) {
-      setProgress(Math.round(((i + 1) / chunks.length) * 100));
+      setProgress(Math.round((i / chunks.length) * 100));
       try {
         const url = await speakChunk(chunks[i]);
         urls.push(url);
+        setProgress(Math.round(((i + 1) / chunks.length) * 100));
       } catch (e) { console.error("chunk fetch error:", e); }
     }
     audioChunksRef.current = urls;
