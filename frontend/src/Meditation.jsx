@@ -168,15 +168,22 @@ export default function Meditation() {
         urls.push(url);
       } catch (e) { console.error("chunk fetch error:", e); }
     }
-
-    clearInterval(simInterval);
-    setProgress(100);
     audioChunksRef.current = urls;
-    setTimeout(() => {
-      setAudioReady(true);
-      setTotalTime(totalSec);
-      setTimeLeft(totalSec);
-    }, 300);
+
+    // Attendre que la simulation atteigne 100% avant d'activer le bouton
+    const waitForSim = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      if (elapsed >= estimatedMs) {
+        clearInterval(simInterval);
+        clearInterval(waitForSim);
+        setProgress(100);
+        setTimeout(() => {
+          setAudioReady(true);
+          setTotalTime(totalSec);
+          setTimeLeft(totalSec);
+        }, 300);
+      }
+    }, 200);
   };
 
   // Bouton ▶ : écouter / reprendre / réécouter
