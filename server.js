@@ -123,10 +123,11 @@ app.post("/api/speak-meditation", async (req, res) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "tts-1",
+        model: "tts-1-hd",
         voice: "shimmer",
         input: text,
-        speed: 1.0
+        speed: 1.0,
+        instructions: "Speak in a slow, deeply calm and spiritual tone. Pause gently at each ellipsis. Breathe between sentences. Your voice is warm, enveloping, like a guide leading someone into deep inner peace."
       }),
     });
 
@@ -166,10 +167,11 @@ app.get("/api/speak-meditation-intro", async (req, res) => {
       method: "POST",
       headers: { "Authorization": "Bearer " + process.env.OPENAI_API_KEY, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "tts-1",
+        model: "tts-1-hd",
         voice: "shimmer",
         input: INTRO_TEXT,
-        speed: 1.0
+        speed: 1.0,
+        instructions: "Speak in a slow, deeply calm and spiritual tone. Pause gently at each ellipsis. Breathe between sentences. Your voice is warm, enveloping, like a guide leading someone into deep inner peace."
       }),
     });
     if (!response.ok) return res.status(500).json({ error: "Erreur intro" });
