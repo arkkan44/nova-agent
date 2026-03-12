@@ -384,7 +384,7 @@ Règles :
             </p>
 
             {/* Barre chargement OU barre lecture */}
-            {!audioReady && !wasPaused && progress > 0 && (
+            {!audioReady && !wasPaused && (
               <div style={s.loadingSection}>
                 <div style={s.loadingBarWrap}>
                   <div style={{ ...s.loadingBarFill, width: `${progress}%` }} />
