@@ -155,7 +155,9 @@ export default function App() {
   };
 
   const loadConversations = async () => {
-    const { data } = await supabase.from("conversations").select("*").order("updated_at", { ascending: false });
+    const { data } = await supabase.from("conversations").select("*")
+      .not("title", "ilike", "🧘%")
+      .order("updated_at", { ascending: false });
     setConversations(data || []);
   };
 
