@@ -87,7 +87,9 @@ export default function Meditation() {
 
   const playIntro = async () => {
     try {
+      console.log("🎵 Intro: fetch start");
       const res = await fetch(`${API}/api/speak-meditation-intro`);
+      console.log("🎵 Intro: response", res.status, res.ok);
       if (!res.ok) return;
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -96,9 +98,11 @@ export default function Meditation() {
         // Ne pas écraser audioRef — l'intro a son propre objet Audio
         audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
         audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
-        audio.play().catch(() => resolve());
+        audio.play()
+          .then(() => console.log("🎵 Intro: playing"))
+          .catch((e) => { console.error("🎵 Intro play error:", e); resolve(); });
       });
-    } catch {}
+    } catch(e) { console.error("🎵 Intro catch:", e); }
   };
 
   const saveMeditation = async (text, etatChoisi, styleChoisi) => {
