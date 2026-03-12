@@ -136,7 +136,7 @@ export default function Meditation() {
       if (stoppedRef.current) break;
       setProgress(Math.round((i / urls.length) * 95));
       await playAudioUrl(urls[i]);
-      URL.revokeObjectURL(urls[i]);
+      // Ne pas révoquer pour permettre de réécouter
     }
 
     if (timerRef.current) clearInterval(timerRef.current);
