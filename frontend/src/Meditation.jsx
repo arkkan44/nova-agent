@@ -140,7 +140,7 @@ export default function Meditation() {
     if (timerRef.current) clearInterval(timerRef.current);
     if (!stoppedRef.current) { setProgress(100); setTimeLeft(0); }
     setIsPlaying(false);
-    audioChunksRef.current = [];
+    // Ne pas vider audioChunksRef pour permettre de rejouer
   };
 
   const playMeditation = async (text, duration) => {
@@ -187,12 +187,20 @@ export default function Meditation() {
     }
   };
 
-  // Bouton ▶ mobile : déclenché par l'utilisateur
+  // Bouton ▶ mobile : déclenché par l'utilisateur (aussi pour reprendre)
   const launchMobileAudio = async () => {
-    const urls = audioChunksRef.current;
-    if (!urls.length) return;
+    // Re-télécharger si le cache est vide (après pause)
+    if (!audioChunksRef.current.length) {
+      const chunks = splitText(meditationText, 2000);
+      const urls = [];
+      for (let i = 0; i < chunks.length; i++) {
+        setProgress(Math.round(((i + 1) / chunks.length) * 80));
+        try { urls.push(await speakChunk(chunks[i])); } catch {}
+      }
+      audioChunksRef.current = urls;
+    }
     setAudioReady(false);
-    await playChunksSequentially(urls, totalTime);
+    await playChunksSequentially(audioChunksRef.current, totalTime);
   };
 
   const splitText = (text, maxLen) => {
@@ -423,7 +431,9 @@ Règles :
             <div style={s.controls}>
               {isPlaying
                 ? <button style={s.controlBtn} className="control-btn" onClick={stopMeditation}>⏸ Pause</button>
-                : !isMobile && <button style={s.controlBtn} className="control-btn" onClick={startPlaying}>▶ {progress > 0 && progress < 100 ? "Reprendre" : "Écouter"}</button>
+                : isMobile
+                  ? progress > 0 && <button style={s.controlBtn} className="control-btn" onClick={launchMobileAudio}>▶ Reprendre</button>
+                  : <button style={s.controlBtn} className="control-btn" onClick={startPlaying}>▶ {progress > 0 && progress < 100 ? "Reprendre" : "Écouter"}</button>
               }
               <button style={s.controlBtnSecondary} onClick={reset}>↺ Nouvelle</button>
             </div>
