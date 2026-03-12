@@ -154,14 +154,13 @@ export default function Meditation() {
     setProgress(0);
     const urls = [];
     for (let i = 0; i < chunks.length; i++) {
-      setProgress(Math.round(((i + 1) / chunks.length) * 99));
+      setProgress(Math.round(((i + 1) / chunks.length) * 100));
       try {
         const url = await speakChunk(chunks[i]);
         urls.push(url);
       } catch (e) { console.error("chunk fetch error:", e); }
     }
     audioChunksRef.current = urls;
-    setProgress(0); // Reset pour la barre de lecture
     setAudioReady(true);
     setTotalTime(totalSec);
     setTimeLeft(totalSec);
