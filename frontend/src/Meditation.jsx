@@ -6,8 +6,8 @@ const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 const API = "https://nova-agent-production-8bcc.up.railway.app";
 
-const ETATS = ["Anxieux / Stressé", "Triste ou lourd", "Agité / Dispersé", "Fatigué", "En quête de clarté", "Bien, je veux approfondir"];
-const STYLES = ["Pleine conscience", "Visualisation", "Non-dualité / Présence", "Souffle & Corps", "Lâcher-prise"];
+const ETATS = ["Anxieux / Stressé", "Triste ou lourd", "Agité / Dispersé", "Fatigué", "Désorienté.e", "Bien, je veux approfondir"];
+const STYLES = ["Pleine conscience", "Visualisation", "Non-dualité / Présence", "Souffle & Corps", "Lâcher-prise", "Psychologie"];
 const PARTICLES = Array.from({ length: 12 }, (_, i) => ({ id: i, x: Math.random() * 100, y: Math.random() * 100, size: Math.random() * 2 + 1, duration: Math.random() * 20 + 10, delay: Math.random() * 10 }));
 
 export default function Meditation() {
@@ -256,12 +256,36 @@ export default function Meditation() {
     }, 1000);
 
     const profilInfo = profil ? `L'utilisateur s'appelle ${profil.prenom}. Chemin : ${profil.chemin_spirituel?.join(", ")||"libre"}. Expériences : ${profil.experiences?.join(", ")||"aucune précisée"}.` : "";
-    const prompt = `Tu es NOVA, guide spirituel profond et bienveillant. Génère une méditation guidée personnalisée en français.
+    const isPsycho = style === "Psychologie";
+    const intentionFinale = isPsycho
+      ? "Je veux qu'on m'aide à travailler à calmer la résurgence de mes traumas d'attachement ou de négligence, avec toutes les dernières découvertes dans ce domaine."
+      : (intention || "s'ouvrir à la paix intérieure");
+
+    const prompt = isPsycho
+      ? `Tu es NOVA, un accompagnant psychologique doux, chaleureux et profondément bienveillant. Tu t'appuies sur les dernières découvertes en psychothérapie de l'attachement, des traumas, la théorie polyvagale, l'EMDR, la thérapie des schémas et la pleine conscience trauma-sensible.
+
+${profilInfo}
+État : ${etat}
+Intention : ${intentionFinale}
+
+Génère un moment de soutien psychologique doux de 10 minutes en français.
+Règles :
+- Commence directement par accueillir la personne avec chaleur et douceur
+- Utilise "vous"
+- Valide les émotions sans les amplifier
+- Guide doucement vers la sécurité intérieure et la régulation du système nerveux
+- Utilise "..." très souvent pour créer des espaces de respiration
+- Phrases courtes, ton enveloppant et sécurisant
+- Intègre des ancrages corporels doux (respiration, sensation des pieds au sol, chaleur dans la poitrine)
+- Rappelle doucement que ces réactions sont normales et que la guérison est possible
+- Termine par un retour doux vers le présent et un ancrage de sécurité
+- Texte fluide, pas de listes, ne mentionne pas la durée`
+      : `Tu es NOVA, guide spirituel profond et bienveillant. Génère une méditation guidée personnalisée en français.
 
 ${profilInfo}
 État : ${etat}
 Style : ${style}
-Intention : ${intention || "s'ouvrir à la paix intérieure"}
+Intention : ${intentionFinale}
 
 Règles :
 - Commence directement par guider, sans introduction
@@ -279,7 +303,9 @@ Règles :
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          system: "Tu es NOVA, guide spirituel. Tu génères des méditations guidées profondes en français.",
+          system: isPsycho
+            ? "Tu es NOVA, un accompagnant psychologique doux et bienveillant spécialisé en psychothérapie de l'attachement et des traumas. Tu génères des moments de soutien psy chaleureux en français."
+            : "Tu es NOVA, guide spirituel. Tu génères des méditations guidées profondes en français.",
           messages: [{ role: "user", content: prompt }]
         }),
       });
@@ -287,7 +313,7 @@ Règles :
       const text = data.content?.map(b => b.text || "").join("") || "";
       if (!text) throw new Error("Texte vide");
 
-      const secs = Math.round((text.split(/\s+/).length / 100) * 60);
+      const secs = isPsycho ? 600 : Math.round((text.split(/\s+/).length / 100) * 60);
       setTotalTime(secs);
       setTimeLeft(secs);
       setMeditationText(text);
