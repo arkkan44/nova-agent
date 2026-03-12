@@ -441,7 +441,7 @@ Règles :
               {isPlaying
                 ? <button style={s.controlBtn} className="control-btn" onClick={stopMeditation}>⏸ Pause</button>
                 : progress === 100
-                  ? <button style={s.controlBtn} className="control-btn" onClick={() => window.location.href = '/'}>← Retour à NOVA</button>
+                  ? <button style={s.controlBtn} className="control-btn" onClick={launchMobileAudio}>▶ Réécouter</button>
                   : <button
                       style={{ ...s.controlBtn, opacity: audioReady ? 1 : 0.4 }}
                       className={audioReady ? "control-btn" : ""}
