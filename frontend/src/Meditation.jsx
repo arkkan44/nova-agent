@@ -227,11 +227,7 @@ export default function Meditation() {
     setIsPlaying(false);
   };
 
-  const startPlaying = async () => {
-    setProgress(0);
-    setTimeLeft(totalTime);
-    await playMeditation(meditationText, totalTime);
-  };
+
 
   const generateMeditation = async () => {
     // Débloquer AudioContext iOS au moment du clic
@@ -407,33 +403,26 @@ Règles :
             {/* Texte */}
             <div style={s.textScroll}>
               {/* Timer AU DESSUS du texte */}
-              {(isPlaying || audioReady) && totalTime > 0 && (
+              {isPlaying && totalTime > 0 && (
                 <div style={s.timerInText}>
                   <span style={s.timerText}>{Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")} restantes</span>
                   <span style={s.timerTotal}> / {Math.floor(totalTime / 60)}:{String(totalTime % 60).padStart(2, "0")}</span>
                 </div>
               )}
-              {/* Mobile : audio prêt */}
-              {isMobile && audioReady && !isPlaying && (
-                <div style={s.mobileReadyWrap}>
-                  <p style={s.mobileReadyText}>✦ L'audio est prêt</p>
-                  <button style={s.mobilePlayBtn} className="control-btn" onClick={launchMobileAudio}>▶ Lancer la méditation</button>
-                </div>
-              )}
               {/* Chargement mobile */}
-              {isMobile && !audioReady && !isPlaying && progress > 0 && progress < 100 && (
+              {isMobile && !isPlaying && progress > 0 && progress < 100 && (
                 <p style={s.mobileLoadingText}>⏳ Préparation de l'audio... {progress}%</p>
               )}
               <p style={s.meditationText}>{meditationText}</p>
             </div>
 
-            {/* Contrôles */}
+            {/* UN SEUL bouton contrôle */}
             <div style={s.controls}>
               {isPlaying
                 ? <button style={s.controlBtn} className="control-btn" onClick={stopMeditation}>⏸ Pause</button>
-                : isMobile
-                  ? progress > 0 && <button style={s.controlBtn} className="control-btn" onClick={launchMobileAudio}>▶ Reprendre</button>
-                  : <button style={s.controlBtn} className="control-btn" onClick={startPlaying}>▶ {progress > 0 && progress < 100 ? "Reprendre" : "Écouter"}</button>
+                : <button style={s.controlBtn} className="control-btn" onClick={launchMobileAudio}>
+                    ▶ {progress === 0 ? "Écouter" : progress === 100 ? "Réécouter" : "Reprendre"}
+                  </button>
               }
               <button style={s.controlBtnSecondary} onClick={reset}>↺ Nouvelle</button>
             </div>
