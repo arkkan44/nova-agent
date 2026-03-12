@@ -117,6 +117,17 @@ export default function Meditation() {
   };
 
   const generateMeditation = async () => {
+    // iOS Safari : débloquer le contexte audio immédiatement au clic
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const buf = ctx.createBuffer(1, 1, 22050);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(ctx.destination);
+      src.start(0);
+      setTimeout(() => ctx.close(), 100);
+    } catch {}
+
     setIsLoading(true);
     setStep("generating");
     setError("");
@@ -222,11 +233,14 @@ Règles absolues :
 
         await new Promise((resolve) => {
           if (stoppedRef.current) { resolve(); return; }
-          const audio = new Audio(url);
+          const audio = new Audio();
           audioRef.current = audio;
           audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
           audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
-          audio.play().catch(() => resolve());
+          // iOS : assigner src après création pour garder le contexte utilisateur
+          audio.src = url;
+          audio.load();
+          audio.play().catch((e) => { console.error("play error:", e); URL.revokeObjectURL(url); resolve(); });
         });
       }
 
