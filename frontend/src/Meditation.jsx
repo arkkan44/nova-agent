@@ -149,22 +149,34 @@ export default function Meditation() {
     const chunks = splitText(text, 2000);
     const totalSec = duration || totalTime;
 
-    // Même comportement partout : pré-charger puis attendre le clic
     setAudioReady(false);
     setProgress(0);
+
+    // Simulation du chargement : ~3 secondes par chunk en moyenne
+    const estimatedMs = chunks.length * 3000;
+    const startTime = Date.now();
+    const simInterval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const pct = Math.min(95, Math.round((elapsed / estimatedMs) * 100));
+      setProgress(pct);
+    }, 200);
+
     const urls = [];
     for (let i = 0; i < chunks.length; i++) {
-      setProgress(Math.round((i / chunks.length) * 100));
       try {
         const url = await speakChunk(chunks[i]);
         urls.push(url);
-        setProgress(Math.round(((i + 1) / chunks.length) * 100));
       } catch (e) { console.error("chunk fetch error:", e); }
     }
+
+    clearInterval(simInterval);
+    setProgress(100);
     audioChunksRef.current = urls;
-    setAudioReady(true);
-    setTotalTime(totalSec);
-    setTimeLeft(totalSec);
+    setTimeout(() => {
+      setAudioReady(true);
+      setTotalTime(totalSec);
+      setTimeLeft(totalSec);
+    }, 300);
   };
 
   // Bouton ▶ : écouter / reprendre / réécouter
