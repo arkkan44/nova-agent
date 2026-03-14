@@ -603,7 +603,7 @@ export default function App() {
       {sidebarOpen && <div style={styles.sidebarOverlay} onClick={() => setSidebarOpen(false)} />}
 
       {/* Boutons fixes */}
-      <button style={{ ...styles.menuBtn, background: isDay ? "linear-gradient(135deg, #b8860b, #d4a84b)" : "rgba(0,0,0,0.6)", border: `1px solid ${isDay ? "#d4a84b" : "rgba(200,160,80,0.45)"}`, color: isDay ? "#0a0800" : "#d4a84b", boxShadow: isDay ? "0 0 20px rgba(200,160,80,0.5)" : "0 2px 12px rgba(0,0,0,0.4)" }} className="menu-btn" onClick={() => setSidebarOpen(true)}>☰</button>
+      <button style={{ ...styles.menuBtn, background: "linear-gradient(135deg, #b8860b, #d4a84b)", border: "1.5px solid #d4a84b", color: "#0a0800", boxShadow: "0 0 20px rgba(200,160,80,0.6), 0 0 40px rgba(200,160,80,0.3)" }} className="menu-btn" onClick={() => setSidebarOpen(true)}>☰</button>
       
       {started && <button style={styles.homeBtnFixed} className="home-btn" onClick={handleHome}>↩ Accueil</button>}
 
@@ -626,8 +626,8 @@ export default function App() {
           <div style={styles.suggestions}>
             {SUGGESTIONS.map((s, i) => (
               <button key={i} style={s.highlight
-                ? { ...styles.suggestionHighlight, background: isDay ? "rgba(255,252,245,0.95)" : "rgba(255,255,255,0.12)", border: "1px solid rgba(200,160,80,0.7)", color: isDay ? "#2a1f0a" : "#f0e8d8", boxShadow: "0 0 16px rgba(200,160,80,0.3)" }
-                : { ...styles.suggestion, background: isDay ? "rgba(255,252,245,0.9)" : "rgba(200,160,80,0.1)", border: "1px solid rgba(200,160,80,0.5)", color: isDay ? "#2a1f0a" : "#e8d8b8" }
+                ? styles.suggestionHighlight
+                : { ...styles.suggestion, background: isDay ? "rgba(255,252,245,0.9)" : "rgba(200,160,80,0.08)", border: "1px solid rgba(200,160,80,0.6)", color: isDay ? "#2a1f0a" : "#e8d8b8" }
               } className={s.highlight ? "suggestion-highlight" : "suggestion-btn"} onClick={() => sendMessage(s.text)}>
                 {s.text}
               </button>
@@ -753,19 +753,20 @@ const css = `
   @keyframes float { 0% { transform: translateY(0) translateX(0); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 0.5; } 100% { transform: translateY(-100px) translateX(30px); opacity: 0; } }
   .ring-pulse { animation: ringPulse 3s ease-in-out infinite; }
   @keyframes ringPulse { 0%, 100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.08); opacity: 1; box-shadow: 0 0 20px 4px rgba(200,160,80,0.3); } }
-  .suggestion-btn:hover { background: rgba(139,90,200,0.85) !important; border-color: rgba(200,160,80,0.8) !important; color: #fff !important; transform: translateY(-2px); }
-  .suggestion-highlight { background: rgba(255,255,255,0.15) !important; border: 1px solid rgba(200,160,80,0.6) !important; color: #f0e8d8 !important; }
+  .suggestion-btn:hover { background: rgba(139,90,200,0.85) !important; border-color: #d4a84b !important; color: #fff !important; transform: translateY(-2px); }
   .suggestion-highlight:hover { background: rgba(139,90,200,0.85) !important; border-color: #d4a84b !important; color: #fff !important; transform: translateY(-2px); box-shadow: 0 0 32px rgba(139,90,200,0.6) !important; }
-  .home-btn:hover, .menu-btn:hover { background: rgba(139,90,200,0.8) !important; border-color: rgba(200,160,80,0.5) !important; color: #fff !important; }
-  .vocal-btn:hover { box-shadow: 0 0 28px rgba(200,160,80,0.9), 0 0 56px rgba(200,160,80,0.5) !important; transform: scale(1.1); }
-  .new-conv-btn:hover { background: linear-gradient(135deg, rgba(139,90,200,0.9), rgba(180,140,0,0.8)) !important; color: #fff !important; border-color: #d4a84b !important; }
-  .meditation-side-btn:hover { background: linear-gradient(135deg, #d4a84b, #b8860b) !important; border-color: #d4a84b !important; color: #0a0800 !important; }
-  .meditation-item:hover { background: rgba(139,90,200,0.12) !important; border-color: rgba(139,90,200,0.3) !important; }
-  .conv-item:hover { background: rgba(200,160,80,0.07) !important; }
+  .menu-btn:hover { background: rgba(139,90,200,0.85) !important; border-color: #d4a84b !important; color: #fff !important; transform: scale(1.05); }
+  .vocal-btn:hover { box-shadow: 0 0 28px rgba(200,160,80,0.9) !important; transform: scale(1.1); }
+  .new-conv-btn:hover { background: linear-gradient(135deg, #7b4fa0, #d4a84b) !important; color: #fff !important; border-color: #d4a84b !important; box-shadow: 0 0 20px rgba(139,90,200,0.5) !important; }
+  .meditation-side-btn:hover { background: linear-gradient(135deg, #d4a84b, #b8860b) !important; border-color: #d4a84b !important; color: #0a0800 !important; box-shadow: 0 0 20px rgba(200,160,80,0.5) !important; }
+  .meditation-item:hover { background: rgba(139,90,200,0.12) !important; border-color: rgba(139,90,200,0.4) !important; }
+  .conv-item:hover { background: rgba(200,160,80,0.08) !important; }
   .email-btn:hover { background: rgba(200,160,80,0.25) !important; border-color: rgba(200,160,80,0.5) !important; transform: scale(1.1); }
   .delete-btn:hover { background: rgba(200,60,60,0.25) !important; border-color: rgba(200,60,60,0.5) !important; transform: scale(1.1); }
   .send-btn:hover:not(:disabled) { transform: scale(1.1); box-shadow: 0 0 32px rgba(200,160,80,1), 0 0 64px rgba(200,160,80,0.6) !important; }
   .input-glow:focus-within { border-color: rgba(200,160,80,0.6) !important; box-shadow: 0 0 24px rgba(200,160,80,0.15); }
+  [data-theme="day"] input::placeholder, [data-theme="day"] textarea::placeholder { color: rgba(0,0,0,0.3); }
+  [data-theme="day"] .particle { background: radial-gradient(circle, rgba(139,90,200,0.2) 0%, transparent 70%) !important; }
   .msg-fade-in { animation: fadeIn 0.4s ease-out; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   .dot { width: 6px; height: 6px; border-radius: 50%; background: #d4a84b; display: inline-block; animation: dotPulse 1.2s ease-in-out infinite; }
@@ -777,12 +778,4 @@ const css = `
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--nova-scroll, rgba(200,160,80,0.4)); border-radius: 2px; }
-  [data-theme="day"] input::placeholder, [data-theme="day"] textarea::placeholder { color: rgba(0,0,0,0.3); }
-  [data-theme="day"] .particle { background: radial-gradient(circle, rgba(90,62,8,0.25) 0%, transparent 70%) !important; }
-  [data-theme="day"] .conv-item:hover { background: rgba(90,62,8,0.06) !important; }
-  [data-theme="day"] .new-conv-btn:hover { background: rgba(90,62,8,0.1) !important; }
-  [data-theme="day"] .input-glow:focus-within { border-color: rgba(90,62,8,0.5) !important; box-shadow: 0 0 16px rgba(90,62,8,0.08); }
-  [data-theme="day"] .suggestion-btn:hover { background: rgba(90,62,8,0.1) !important; border-color: rgba(90,62,8,0.4) !important; }
-  [data-theme="day"] .menu-btn:hover { background: rgba(90,62,8,0.08) !important; border-color: rgba(90,62,8,0.4) !important; }
-  [data-theme="day"] .send-btn:hover:not(:disabled) { box-shadow: 0 0 24px rgba(90,62,8,0.4) !important; }
 `;
