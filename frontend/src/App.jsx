@@ -520,8 +520,8 @@ export default function App() {
           <span style={{ ...styles.sidebarTitle, color: T.gold }}>Conversations</span>
           <button style={styles.sidebarClose} onClick={() => setSidebarOpen(false)}>✕</button>
         </div>
-        <button style={styles.newConvBtn} className="new-conv-btn" onClick={() => { handleHome(); setSidebarOpen(false); }}>+ Nouvelle conversation</button>
-        <a href="/meditation" style={styles.meditationSideBtn} className="meditation-side-btn" onClick={() => setSidebarOpen(false)}>🧘 Méditation guidée</a>
+        <button style={styles.newConvBtn} className="new-conv-btn" onClick={() => { handleHome(); setSidebarOpen(false); }} style={{ margin: "0 16px 8px", background: isDay ? "#5a3e08" : "rgba(200,160,80,0.1)", border: `1px solid ${isDay ? "#5a3e08" : "rgba(200,160,80,0.3)"}`, borderRadius: 20, padding: "10px 16px", color: isDay ? "#fff" : "#d4a84b", fontFamily: "inherit", fontSize: "0.812rem", cursor: "pointer", transition: "all 0.3s", letterSpacing: 0.5 }}>+ Nouvelle conversation</button>
+        <a href="/meditation" style={{ display: "block", margin: "0 16px 12px", background: isDay ? "#4a2d7a" : "rgba(139,90,200,0.1)", border: `1px solid ${isDay ? "#4a2d7a" : "rgba(139,90,200,0.3)"}`, borderRadius: 20, padding: "10px 16px", color: isDay ? "#fff" : "#c8a8f0", fontFamily: "inherit", fontSize: "0.812rem", cursor: "pointer", transition: "all 0.3s", letterSpacing: 0.5, textDecoration: "none", textAlign: "center" }} className="meditation-side-btn" onClick={() => setSidebarOpen(false)}>🧘 Méditation guidée</a>
         {emailNotice && <div style={styles.emailNotice}>{emailNotice}</div>}
         <div style={styles.convList}>
           {conversations.map(c => (
@@ -609,7 +609,12 @@ export default function App() {
 
       <div style={styles.container}>
         <div style={styles.header}>
-          <div style={styles.logoWrap}><div style={styles.logoRing} className="ring-pulse" /><div style={styles.logoInner}><span style={styles.logoSymbol}>☽✦☾</span></div></div>
+          <div style={styles.logoWrap}>
+            <div style={{ ...styles.logoRing, border: `1px solid ${isDay ? "rgba(90,62,8,0.6)" : "rgba(200,160,80,0.6)"}` }} className="ring-pulse" />
+            <div style={{ ...styles.logoInner, background: isDay ? "radial-gradient(circle, rgba(90,62,8,0.15) 0%, rgba(90,62,8,0.08) 100%)" : "radial-gradient(circle, rgba(139,90,200,0.3) 0%, rgba(200,160,80,0.15) 100%)", border: `1px solid ${isDay ? "rgba(90,62,8,0.3)" : "rgba(200,160,80,0.3)"}` }}>
+              <span style={{ ...styles.logoSymbol, color: T.textTitle }}>☽✦☾</span>
+            </div>
+          </div>
           {!started && (<><h1 style={{ ...styles.title, color: T.textTitle }}>NOVA</h1><p style={{ ...styles.subtitle, color: T.textSecond }}>Agent d'Éveil & de Réalisation de Soi</p>
             {profil?.prenom && <p style={{ ...styles.greeting, color: T.textTitle }}>Bienvenue, {profil.prenom} ✦</p>}<p style={{ ...styles.desc, color: T.textPrimary }}>Aux frontières de la conscience, les mystiques, les expérienceurs d'EMI, les guides spirituels nous ont rapporté l'essentiel. NOVA vous aide à l'appliquer à ce que vous vivez aujourd'hui, ici et maintenant.</p></>)}
           {started && <h2 style={{ ...styles.titleSmall, color: T.textTitle }}>NOVA</h2>}
@@ -620,7 +625,10 @@ export default function App() {
         {!started && (
           <div style={styles.suggestions}>
             {SUGGESTIONS.map((s, i) => (
-              <button key={i} style={s.highlight ? styles.suggestionHighlight : styles.suggestion} className={s.highlight ? "suggestion-highlight" : "suggestion-btn"} onClick={() => sendMessage(s.text)}>
+              <button key={i} style={s.highlight
+                ? { ...styles.suggestionHighlight }
+                : { ...styles.suggestion, background: isDay ? "rgba(90,62,8,0.08)" : "rgba(200,160,80,0.1)", border: `1px solid ${isDay ? "rgba(90,62,8,0.4)" : "rgba(200,160,80,0.35)"}`, color: isDay ? "#1a1208" : "#e8d8b8" }
+              } className={s.highlight ? "suggestion-highlight" : "suggestion-btn"} onClick={() => sendMessage(s.text)}>
                 {s.text}
               </button>
             ))}
@@ -652,10 +660,10 @@ export default function App() {
         )}
 
         <div style={styles.inputArea}>
-          <div style={styles.inputWrap} className="input-glow">
-            <textarea style={styles.textarea} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKey} placeholder="Posez votre question ou partagez ce qui vous habite..." rows={2} disabled={loading} />
-            <button style={{ ...styles.sendBtn, opacity: input.trim() && !loading ? 1 : 0.4 }} className="send-btn" onClick={() => sendMessage()} disabled={!input.trim() || loading}>✦</button>
-            <a href="/vocal" style={styles.vocalBtn} className="vocal-btn" title="Mode vocal NOVA">🎤</a>
+          <div style={{ ...styles.inputWrap, background: isDay ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.1)", border: `1px solid ${isDay ? "rgba(90,62,8,0.35)" : "rgba(200,160,80,0.35)"}` }} className="input-glow">
+            <textarea style={{ ...styles.textarea, color: isDay ? "#1a1208" : "#ffffff" }} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKey} placeholder="Posez votre question ou partagez ce qui vous habite..." rows={2} disabled={loading} />
+            <button style={{ ...styles.sendBtn, opacity: input.trim() && !loading ? 1 : 0.4, background: isDay ? "linear-gradient(135deg, #5a3e08, #8b6914)" : "linear-gradient(135deg, #b8860b 0%, #d4a84b 50%, #a0720a 100%)", boxShadow: isDay ? "0 0 20px rgba(90,62,8,0.5)" : "0 0 20px rgba(200,160,80,0.8), 0 0 40px rgba(200,160,80,0.4)", border: isDay ? "2px solid #8b6914" : "2px solid #e8c060" }} className="send-btn" onClick={() => sendMessage()} disabled={!input.trim() || loading}>✦</button>
+            <a href="/vocal" style={{ ...styles.vocalBtn, background: isDay ? "rgba(90,62,8,0.12)" : "rgba(200,160,80,0.08)", border: `1px solid ${isDay ? "rgba(90,62,8,0.4)" : "rgba(200,160,80,0.2)"}` }} className="vocal-btn" title="Mode vocal NOVA">🎤</a>
           </div>
           <p style={styles.hint}>✦ Entrée pour envoyer · Shift+Entrée pour nouvelle ligne</p>
         </div>
