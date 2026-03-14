@@ -531,9 +531,16 @@ export default function App() {
                 <span style={styles.convDate}>{new Date(c.updated_at).toLocaleDateString("fr-FR")}</span>
               </div>
               <div style={styles.convActions}>
-                <button style={{ ...styles.emailBtn, opacity: sendingEmail === c.id ? 0.5 : 1 }} className="email-btn" onClick={(e) => handleSendSummaryEmail(e, c.id)} disabled={sendingEmail === c.id} title="Recevoir l'essence par email">
-                  {sendingEmail === c.id ? "…" : "✉"}
-                </button>
+                <div style={{ position: "relative", flexShrink: 0 }} className="email-tooltip-wrap">
+                  <button style={{ ...styles.emailBtn, opacity: sendingEmail === c.id ? 0.5 : 1 }} className="email-btn" onClick={(e) => handleSendSummaryEmail(e, c.id)} disabled={sendingEmail === c.id}>
+                    {sendingEmail === c.id ? "…" : "✉"}
+                  </button>
+                  <div className="email-tooltip">
+                    <span style={{ color: "#d4a84b", fontWeight: 700 }}>✦ Reçois l'essence par email</span>
+                    <br />
+                    NOVA t'envoie un résumé de cette conversation — les insights clés et ce qui a émergé, sans avoir à tout relire.
+                  </div>
+                </div>
                 <button style={styles.deleteBtn} className="delete-btn" onClick={(e) => deleteConversation(e, c.id)} title="Supprimer cette conversation">✕</button>
               </div>
             </div>
@@ -761,6 +768,37 @@ const css = `
   .meditation-side-btn:hover { background: linear-gradient(135deg, #7b4fa0, #d4a84b) !important; border-color: #d4a84b !important; color: #fff !important; box-shadow: 0 0 20px rgba(139,90,200,0.5) !important; }
   .meditation-item:hover { background: rgba(139,90,200,0.12) !important; border-color: rgba(139,90,200,0.4) !important; }
   .conv-item:hover { background: rgba(200,160,80,0.08) !important; }
+  .email-tooltip-wrap { position: relative; }
+  .email-tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 10px);
+    right: 0;
+    width: 230px;
+    background: rgba(8,4,14,0.96);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(200,160,80,0.4);
+    border-radius: 14px;
+    padding: 12px 14px;
+    font-size: 12px;
+    color: #c8bcac;
+    line-height: 1.6;
+    letter-spacing: 0.3px;
+    z-index: 999;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 20px rgba(200,160,80,0.15);
+    pointer-events: none;
+    animation: tooltipIn 0.2s ease;
+  }
+  .email-tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    right: 10px;
+    border: 6px solid transparent;
+    border-top-color: rgba(200,160,80,0.4);
+  }
+  .email-tooltip-wrap:hover .email-tooltip { display: block; }
+  @keyframes tooltipIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
   .email-btn:hover { background: rgba(200,160,80,0.25) !important; border-color: rgba(200,160,80,0.5) !important; transform: scale(1.1); }
   .delete-btn:hover { background: rgba(200,60,60,0.25) !important; border-color: rgba(200,60,60,0.5) !important; transform: scale(1.1); }
   .send-btn:hover:not(:disabled) { transform: scale(1.1); box-shadow: 0 0 32px rgba(200,160,80,1), 0 0 64px rgba(200,160,80,0.6) !important; }
