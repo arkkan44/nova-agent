@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 import Profil from "./Profil.jsx";
 import InstallBanner from "./components/InstallBanner.jsx";
-import AmbientSound from "./components/AmbientSound.jsx";
 
 const SUPABASE_URL = "https://izqedljmaiylwjkyoiwh.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6cWVkbGptYWl5bHdqa3lvaXdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2MzMyNjcsImV4cCI6MjA4ODIwOTI2N30.GcelpRphmj24YbV1T3ttFNuHSpy6g3t6NE6kIM33T4o";
@@ -55,6 +54,48 @@ const SUGGESTIONS = [
   { text: "Comment développer son intuition ?", highlight: false },
 ];
 
+function AmbientInline() {
+  const [playing, setPlaying] = useState(false);
+  const [volume, setVolume] = useState(0.25);
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    const audio = new Audio("/ambient.mp3");
+    audio.loop = true;
+    audio.volume = 0;
+    audioRef.current = audio;
+    return () => { audio.pause(); audio.src = ""; };
+  }, []);
+
+  const toggle = async () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (playing) {
+      let v = audio.volume;
+      const iv = setInterval(() => { v = Math.max(v - 0.03, 0); audio.volume = v; if (v <= 0) { clearInterval(iv); audio.pause(); } }, 80);
+      setPlaying(false);
+    } else {
+      audio.volume = 0;
+      await audio.play().catch(() => {});
+      let v = 0;
+      const iv = setInterval(() => { v = Math.min(v + 0.015, volume); audio.volume = v; if (v >= volume) clearInterval(iv); }, 80);
+      setPlaying(true);
+    }
+  };
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <input type="range" min="0" max="1" step="0.05" value={volume}
+        onChange={e => { const v = parseFloat(e.target.value); setVolume(v); if (audioRef.current && playing) audioRef.current.volume = v; }}
+        style={{ width: 60, accentColor: "#d4a84b", cursor: "pointer" }}
+      />
+      <button onClick={toggle} style={{ background: playing ? "rgba(200,160,80,0.2)" : "rgba(200,160,80,0.08)", border: `1px solid ${playing ? "rgba(200,160,80,0.8)" : "rgba(200,160,80,0.3)"}`, borderRadius: "50%", width: 34, height: 34, color: playing ? "#d4a84b" : "#706050", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.3s", flexShrink: 0, boxShadow: playing ? "0 0 12px rgba(200,160,80,0.4)" : "none" }}>
+        {playing ? "◉" : "◎"}
+      </button>
+    </div>
+  );
+}
+
 export default function App() {
   const [user, setUser] = useState(null);
   const [authMode, setAuthMode] = useState("login");
@@ -81,6 +122,11 @@ export default function App() {
   const [sendingEmail, setSendingEmail] = useState(null);
   const [meditations, setMeditations] = useState([]);
   const [emailNotice, setEmailNotice] = useState("");
+  const [fontSize, setFontSize] = useState(15);
+
+  useEffect(() => {
+    document.documentElement.style.fontSize = fontSize + "px";
+  }, [fontSize]);
 
   const messagesEndRef = useRef(null);
   const conversationHistory = useRef([]);
@@ -472,6 +518,26 @@ export default function App() {
 
         <div style={styles.sidebarFooter}>
           <span style={styles.planBadge}>{subscription?.plan === "premium" ? "✦ Premium" : `Gratuit · ${FREE_LIMIT - (subscription?.messages_today || 0)} msg restants`}</span>
+
+          {/* Taille du texte */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 12, color: "#a09080", letterSpacing: 0.5 }}>Taille du texte</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <button style={{ background: "rgba(200,160,80,0.1)", border: "1px solid rgba(200,160,80,0.3)", borderRadius: 20, padding: "4px 12px", color: "#d4a84b", fontFamily: "inherit", fontSize: 14, cursor: "pointer" }} onClick={() => setFontSize(f => Math.max(12, f - 1))}>A−</button>
+              <span style={{ fontSize: 12, color: "#d4a84b", minWidth: 20, textAlign: "center" }}>{fontSize}</span>
+              <button style={{ background: "rgba(200,160,80,0.1)", border: "1px solid rgba(200,160,80,0.3)", borderRadius: 20, padding: "4px 12px", color: "#d4a84b", fontFamily: "inherit", fontSize: 14, cursor: "pointer" }} onClick={() => setFontSize(f => Math.min(22, f + 1))}>A+</button>
+            </div>
+          </div>
+
+          {/* Nappe sonore */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <span style={{ fontSize: 12, color: "#a09080", letterSpacing: 0.5 }}>Nappe sonore binaurale</span>
+              <span style={{ fontSize: 10, color: "#504540", letterSpacing: 0.3 }}>Son de fond pour la méditation</span>
+            </div>
+            <AmbientInline />
+          </div>
+
           <button style={styles.logoutBtn} onClick={handleLogout}>Déconnexion</button>
         </div>
       </div>
@@ -536,7 +602,6 @@ export default function App() {
         </div>
       </div>
       <InstallBanner />
-      <AmbientSound />
     </div>
   );
 }
@@ -549,68 +614,68 @@ const styles = {
   particleContainer: { position: "fixed", inset: 0, pointerEvents: "none", zIndex: 2 },
   authBox: { position: "relative", zIndex: 10, display: "flex", flexDirection: "column", alignItems: "center", gap: 16, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(20px)", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 24, padding: "48px 40px", maxWidth: 400, width: "90%" },
   authTabs: { display: "flex", gap: 8, background: "rgba(255,255,255,0.05)", borderRadius: 30, padding: 4, width: "100%" },
-  authTab: { flex: 1, padding: "8px 0", border: "none", borderRadius: 26, background: "transparent", color: "#a09080", cursor: "pointer", fontFamily: "inherit", fontSize: 13, letterSpacing: 1, transition: "all 0.3s" },
+  authTab: { flex: 1, padding: "8px 0", border: "none", borderRadius: 26, background: "transparent", color: "#a09080", cursor: "pointer", fontFamily: "inherit", fontSize: "0.812rem", letterSpacing: 1, transition: "all 0.3s" },
   authTabActive: { background: "rgba(200,160,80,0.2)", color: "#d4a84b", border: "1px solid rgba(200,160,80,0.3)" },
-  authInput: { width: "100%", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(200,160,80,0.25)", borderRadius: 12, padding: "12px 16px", color: "#f0e8d8", fontFamily: "inherit", fontSize: 14, outline: "none", boxSizing: "border-box" },
-  authError: { color: "#d4a84b", fontSize: 13, textAlign: "center", margin: 0 },
-  authBtn: { width: "100%", background: "radial-gradient(circle, rgba(200,160,80,0.3) 0%, rgba(139,90,200,0.2) 100%)", border: "1px solid rgba(200,160,80,0.4)", borderRadius: 30, padding: "12px 0", color: "#d4a84b", fontFamily: "inherit", fontSize: 14, letterSpacing: 2, cursor: "pointer", transition: "all 0.3s" },
-  forgotBtn: { background: "none", border: "none", color: "#706050", fontSize: 12, cursor: "pointer", fontFamily: "inherit", letterSpacing: 0.5, textDecoration: "underline", padding: 0, transition: "color 0.2s" },
-  resetInfo: { fontSize: 13, color: "#a09080", textAlign: "center", lineHeight: 1.6, margin: 0 },
+  authInput: { width: "100%", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(200,160,80,0.25)", borderRadius: 12, padding: "12px 16px", color: "#f0e8d8", fontFamily: "inherit", fontSize: "0.875rem", outline: "none", boxSizing: "border-box" },
+  authError: { color: "#d4a84b", fontSize: "0.812rem", textAlign: "center", margin: 0 },
+  authBtn: { width: "100%", background: "radial-gradient(circle, rgba(200,160,80,0.3) 0%, rgba(139,90,200,0.2) 100%)", border: "1px solid rgba(200,160,80,0.4)", borderRadius: 30, padding: "12px 0", color: "#d4a84b", fontFamily: "inherit", fontSize: "0.875rem", letterSpacing: 2, cursor: "pointer", transition: "all 0.3s" },
+  forgotBtn: { background: "none", border: "none", color: "#706050", fontSize: "0.75rem", cursor: "pointer", fontFamily: "inherit", letterSpacing: 0.5, textDecoration: "underline", padding: 0, transition: "color 0.2s" },
+  resetInfo: { fontSize: "0.812rem", color: "#a09080", textAlign: "center", lineHeight: 1.6, margin: 0 },
   sidebar: { position: "fixed", top: 0, left: 0, width: 300, height: "100vh", background: "rgba(5,5,10,0.97)", backdropFilter: "blur(20px)", borderRight: "1px solid rgba(200,160,80,0.15)", zIndex: 200, display: "flex", flexDirection: "column", transition: "transform 0.3s ease" },
   sidebarHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "24px 20px 16px" },
-  sidebarTitle: { fontFamily: "'Cinzel', serif", fontSize: 14, letterSpacing: 4, color: "#d4a84b" },
-  sidebarClose: { background: "none", border: "none", color: "#a09080", cursor: "pointer", fontSize: 16 },
-  newConvBtn: { margin: "0 16px 8px", background: "rgba(200,160,80,0.1)", border: "1px solid rgba(200,160,80,0.3)", borderRadius: 20, padding: "10px 16px", color: "#d4a84b", fontFamily: "inherit", fontSize: 13, cursor: "pointer", transition: "all 0.3s", letterSpacing: 0.5 },
-  meditationSideBtn: { display: "block", margin: "0 16px 12px", background: "rgba(139,90,200,0.1)", border: "1px solid rgba(139,90,200,0.3)", borderRadius: 20, padding: "10px 16px", color: "#c8a8f0", fontFamily: "inherit", fontSize: 13, cursor: "pointer", transition: "all 0.3s", letterSpacing: 0.5, textDecoration: "none", textAlign: "center" },
-  emailNotice: { margin: "0 16px 12px", background: "rgba(200,160,80,0.1)", border: "1px solid rgba(200,160,80,0.3)", borderRadius: 10, padding: "10px 14px", color: "#d4a84b", fontSize: 12, letterSpacing: 0.5 },
+  sidebarTitle: { fontFamily: "'Cinzel', serif", fontSize: "0.875rem", letterSpacing: 4, color: "#d4a84b" },
+  sidebarClose: { background: "none", border: "none", color: "#a09080", cursor: "pointer", fontSize: "1.0rem" },
+  newConvBtn: { margin: "0 16px 8px", background: "rgba(200,160,80,0.1)", border: "1px solid rgba(200,160,80,0.3)", borderRadius: 20, padding: "10px 16px", color: "#d4a84b", fontFamily: "inherit", fontSize: "0.812rem", cursor: "pointer", transition: "all 0.3s", letterSpacing: 0.5 },
+  meditationSideBtn: { display: "block", margin: "0 16px 12px", background: "rgba(139,90,200,0.1)", border: "1px solid rgba(139,90,200,0.3)", borderRadius: 20, padding: "10px 16px", color: "#c8a8f0", fontFamily: "inherit", fontSize: "0.812rem", cursor: "pointer", transition: "all 0.3s", letterSpacing: 0.5, textDecoration: "none", textAlign: "center" },
+  emailNotice: { margin: "0 16px 12px", background: "rgba(200,160,80,0.1)", border: "1px solid rgba(200,160,80,0.3)", borderRadius: 10, padding: "10px 14px", color: "#d4a84b", fontSize: "0.75rem", letterSpacing: 0.5 },
   convList: { flex: 1, overflowY: "auto", padding: "0 8px" },
   convItem: { background: "transparent", border: "1px solid transparent", borderRadius: 12, padding: "10px 12px", color: "#c8bcac", cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "all 0.2s", marginBottom: 4, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 },
   convItemActive: { background: "rgba(200,160,80,0.08)", border: "1px solid rgba(200,160,80,0.2)" },
   convInfo: { display: "flex", flexDirection: "column", gap: 3, flex: 1, minWidth: 0 },
-  convTitle: { fontSize: 13, lineHeight: 1.4, color: "#e8d8b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  convDate: { fontSize: 11, color: "#706050" },
+  convTitle: { fontSize: "0.812rem", lineHeight: 1.4, color: "#e8d8b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  convDate: { fontSize: "0.688rem", color: "#706050" },
   convActions: { display: "flex", gap: 4, flexShrink: 0 },
-  emailBtn: { background: "rgba(200,160,80,0.08)", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 8, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#d4a84b", fontSize: 13, flexShrink: 0, transition: "all 0.2s" },
-  deleteBtn: { background: "rgba(200,60,60,0.08)", border: "1px solid rgba(200,60,60,0.2)", borderRadius: 8, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#c06060", fontSize: 11, flexShrink: 0, transition: "all 0.2s" },
+  emailBtn: { background: "rgba(200,160,80,0.08)", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 8, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#d4a84b", fontSize: "0.812rem", flexShrink: 0, transition: "all 0.2s" },
+  deleteBtn: { background: "rgba(200,60,60,0.08)", border: "1px solid rgba(200,60,60,0.2)", borderRadius: 8, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#c06060", fontSize: "0.688rem", flexShrink: 0, transition: "all 0.2s" },
   meditationsSection: { borderTop: "1px solid rgba(139,90,200,0.2)", padding: "12px 8px 0" },
-  meditationsSectionTitle: { fontSize: 11, letterSpacing: 2, color: "#9070c0", textTransform: "uppercase", padding: "0 8px", marginBottom: 8 },
+  meditationsSectionTitle: { fontSize: "0.688rem", letterSpacing: 2, color: "#9070c0", textTransform: "uppercase", padding: "0 8px", marginBottom: 8 },
   meditationItemWrap: { display: "flex", alignItems: "center", gap: 4 },
   meditationItem: { display: "block", flex: 1, background: "transparent", border: "1px solid transparent", borderRadius: 12, padding: "10px 12px", color: "#c8bcac", cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "all 0.2s", marginBottom: 4, textDecoration: "none" },
   sidebarFooter: { padding: "16px 20px", borderTop: "1px solid rgba(200,160,80,0.1)", display: "flex", flexDirection: "column", gap: 10 },
-  planBadge: { fontSize: 12, color: "#d4a84b", letterSpacing: 0.5 },
-  logoutBtn: { background: "none", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 20, padding: "8px 16px", color: "#a09080", fontFamily: "inherit", fontSize: 12, cursor: "pointer", transition: "all 0.3s" },
+  planBadge: { fontSize: "0.75rem", color: "#d4a84b", letterSpacing: 0.5 },
+  logoutBtn: { background: "none", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 20, padding: "8px 16px", color: "#a09080", fontFamily: "inherit", fontSize: "0.75rem", cursor: "pointer", transition: "all 0.3s" },
   sidebarOverlay: { position: "fixed", inset: 0, zIndex: 150, background: "rgba(0,0,0,0.4)" },
-  menuBtn: { position: "fixed", top: 20, left: 20, zIndex: 100, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 30, padding: "8px 14px", color: "#d4a84b", fontSize: 16, cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s" },
-  vocalBtn: { background: "rgba(200,160,80,0.08)", border: "1px solid rgba(200,160,80,0.2)", borderRadius: "50%", width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 18, textDecoration: "none", flexShrink: 0, transition: "all 0.3s ease" },
-  homeBtnFixed: { position: "fixed", top: 64, right: 20, zIndex: 100, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 30, padding: "8px 18px", color: "#d4a84b", fontSize: 12, cursor: "pointer", fontFamily: "'Palatino Linotype', serif", letterSpacing: 1, transition: "all 0.3s" },
+  menuBtn: { position: "fixed", top: 20, left: 20, zIndex: 100, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 30, padding: "8px 14px", color: "#d4a84b", fontSize: "1.0rem", cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s" },
+  vocalBtn: { background: "rgba(200,160,80,0.08)", border: "1px solid rgba(200,160,80,0.2)", borderRadius: "50%", width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "1.125rem", textDecoration: "none", flexShrink: 0, transition: "all 0.3s ease" },
+  homeBtnFixed: { position: "fixed", top: 64, right: 20, zIndex: 100, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 30, padding: "8px 18px", color: "#d4a84b", fontSize: "0.75rem", cursor: "pointer", fontFamily: "'Palatino Linotype', serif", letterSpacing: 1, transition: "all 0.3s" },
   container: { position: "relative", zIndex: 3, width: "100%", maxWidth: 720, minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 24px 24px", boxSizing: "border-box" },
   header: { display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", marginBottom: 32 },
   logoWrap: { position: "relative", width: 80, height: 80, marginBottom: 20 },
   logoRing: { position: "absolute", inset: 0, borderRadius: "50%", border: "1px solid rgba(200,160,80,0.6)" },
   logoInner: { position: "absolute", inset: 8, borderRadius: "50%", background: "radial-gradient(circle, rgba(139,90,200,0.3) 0%, rgba(200,160,80,0.15) 100%)", border: "1px solid rgba(200,160,80,0.3)", display: "flex", alignItems: "center", justifyContent: "center" },
-  logoSymbol: { fontSize: 16, color: "#d4a84b", letterSpacing: 2 },
-  title: { fontFamily: "'Cinzel', serif", fontSize: 48, fontWeight: 400, letterSpacing: 16, color: "#d4a84b", margin: "0 0 8px", textShadow: "0 0 40px rgba(200,160,80,0.6)" },
-  titleSmall: { fontFamily: "'Cinzel', serif", fontSize: 18, fontWeight: 400, letterSpacing: 10, color: "#d4a84b" },
-  subtitle: { fontSize: 13, letterSpacing: 4, color: "#b0a090", margin: "0 0 20px", textTransform: "uppercase" },
-  desc: { fontSize: 15, lineHeight: 1.8, color: "#c8bcac", maxWidth: 500, margin: 0 },
-  greeting: { fontSize: 14, color: "#d4a84b", letterSpacing: 2, marginTop: -8 },
-  meditationBtn: { display: "inline-block", marginTop: 16, background: "rgba(139,90,200,0.15)", border: "1px solid rgba(139,90,200,0.4)", borderRadius: 30, padding: "11px 28px", color: "#c8a8f0", fontFamily: "inherit", fontSize: 13, letterSpacing: 1, textDecoration: "none", transition: "all 0.3s", cursor: "pointer" },
-  adminNotice: { background: "rgba(200,160,80,0.12)", border: "1px solid rgba(200,160,80,0.4)", borderRadius: 12, padding: "12px 20px", color: "#d4a84b", fontSize: 13, marginBottom: 16, letterSpacing: 0.5, whiteSpace: "pre-line", maxWidth: 640, width: "100%" },
+  logoSymbol: { fontSize: "1.0rem", color: "#d4a84b", letterSpacing: 2 },
+  title: { fontFamily: "'Cinzel', serif", fontSize: "3.0rem", fontWeight: 400, letterSpacing: 16, color: "#d4a84b", margin: "0 0 8px", textShadow: "0 0 40px rgba(200,160,80,0.6)" },
+  titleSmall: { fontFamily: "'Cinzel', serif", fontSize: "1.125rem", fontWeight: 400, letterSpacing: 10, color: "#d4a84b" },
+  subtitle: { fontSize: "0.812rem", letterSpacing: 4, color: "#b0a090", margin: "0 0 20px", textTransform: "uppercase" },
+  desc: { fontSize: "0.938rem", lineHeight: 1.8, color: "#c8bcac", maxWidth: 500, margin: 0 },
+  greeting: { fontSize: "0.875rem", color: "#d4a84b", letterSpacing: 2, marginTop: -8 },
+  meditationBtn: { display: "inline-block", marginTop: 16, background: "rgba(139,90,200,0.15)", border: "1px solid rgba(139,90,200,0.4)", borderRadius: 30, padding: "11px 28px", color: "#c8a8f0", fontFamily: "inherit", fontSize: "0.812rem", letterSpacing: 1, textDecoration: "none", transition: "all 0.3s", cursor: "pointer" },
+  adminNotice: { background: "rgba(200,160,80,0.12)", border: "1px solid rgba(200,160,80,0.4)", borderRadius: 12, padding: "12px 20px", color: "#d4a84b", fontSize: "0.812rem", marginBottom: 16, letterSpacing: 0.5, whiteSpace: "pre-line", maxWidth: 640, width: "100%" },
   suggestions: { display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center", marginBottom: 32, maxWidth: 640 },
-  suggestion: { background: "rgba(200,160,80,0.1)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 24, padding: "10px 18px", color: "#e8d8b8", fontSize: 13, cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s ease", letterSpacing: 0.5 },
-  suggestionHighlight: { background: "linear-gradient(135deg, #b8860b 0%, #c8a050 50%, #a0720a 100%)", border: "1px solid #d4a84b", borderRadius: 24, padding: "10px 22px", color: "#0a0800", fontSize: 13, cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s ease", letterSpacing: 0.5, fontWeight: "700", boxShadow: "0 0 24px rgba(200,160,80,0.6)" },
+  suggestion: { background: "rgba(200,160,80,0.1)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 24, padding: "10px 18px", color: "#e8d8b8", fontSize: "0.812rem", cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s ease", letterSpacing: 0.5 },
+  suggestionHighlight: { background: "linear-gradient(135deg, #b8860b 0%, #c8a050 50%, #a0720a 100%)", border: "1px solid #d4a84b", borderRadius: 24, padding: "10px 22px", color: "#0a0800", fontSize: "0.812rem", cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s ease", letterSpacing: 0.5, fontWeight: "700", boxShadow: "0 0 24px rgba(200,160,80,0.6)" },
   messages: { flex: 1, width: "100%", overflowY: "auto", paddingBottom: 20, display: "flex", flexDirection: "column", gap: 20 },
   userBubble: { display: "flex", flexDirection: "column", alignItems: "flex-end" },
   aiBubble: { display: "flex", flexDirection: "column", alignItems: "flex-start" },
-  aiLabel: { fontSize: 11, letterSpacing: 3, color: "#d4a84b", marginBottom: 6, textTransform: "uppercase" },
-  userText: { background: "rgba(139,90,200,0.25)", border: "1px solid rgba(139,90,200,0.4)", borderRadius: "20px 20px 4px 20px", padding: "14px 18px", fontSize: 15, lineHeight: 1.7, maxWidth: "80%", color: "#f0e8d8" },
-  aiText: { background: "rgba(255,255,255,0.08)", border: "1px solid rgba(200,160,80,0.25)", borderRadius: "4px 20px 20px 20px", padding: "16px 20px", fontSize: 15, lineHeight: 1.9, maxWidth: "90%", color: "#ede0cc" },
+  aiLabel: { fontSize: "0.688rem", letterSpacing: 3, color: "#d4a84b", marginBottom: 6, textTransform: "uppercase" },
+  userText: { background: "rgba(139,90,200,0.25)", border: "1px solid rgba(139,90,200,0.4)", borderRadius: "20px 20px 4px 20px", padding: "14px 18px", fontSize: "0.938rem", lineHeight: 1.7, maxWidth: "80%", color: "#f0e8d8" },
+  aiText: { background: "rgba(255,255,255,0.08)", border: "1px solid rgba(200,160,80,0.25)", borderRadius: "4px 20px 20px 20px", padding: "16px 20px", fontSize: "0.938rem", lineHeight: 1.9, maxWidth: "90%", color: "#ede0cc" },
   dots: { display: "flex", gap: 6, alignItems: "center", height: 20 },
   inputArea: { width: "100%", paddingTop: 20 },
   inputWrap: { display: "flex", alignItems: "flex-end", gap: 12, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 16, padding: "12px 16px" },
-  textarea: { flex: 1, background: "transparent", border: "none", outline: "none", color: "#ffffff", fontFamily: "inherit", fontSize: 15, lineHeight: 1.7, resize: "none", padding: 0 },
-  sendBtn: { background: "linear-gradient(135deg, #b8860b 0%, #d4a84b 50%, #a0720a 100%)", border: "2px solid #e8c060", borderRadius: "50%", width: 44, height: 44, cursor: "pointer", color: "#0a0800", fontSize: 20, fontWeight: "bold", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.3s ease", flexShrink: 0, boxShadow: "0 0 20px rgba(200,160,80,0.8), 0 0 40px rgba(200,160,80,0.4)" },
-  hint: { textAlign: "center", fontSize: 11, color: "#c8bcac", marginTop: 8, letterSpacing: 1 },
+  textarea: { flex: 1, background: "transparent", border: "none", outline: "none", color: "#ffffff", fontFamily: "inherit", fontSize: "0.938rem", lineHeight: 1.7, resize: "none", padding: 0 },
+  sendBtn: { background: "linear-gradient(135deg, #b8860b 0%, #d4a84b 50%, #a0720a 100%)", border: "2px solid #e8c060", borderRadius: "50%", width: 44, height: 44, cursor: "pointer", color: "#0a0800", fontSize: "1.25rem", fontWeight: "bold", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.3s ease", flexShrink: 0, boxShadow: "0 0 20px rgba(200,160,80,0.8), 0 0 40px rgba(200,160,80,0.4)" },
+  hint: { textAlign: "center", fontSize: "0.688rem", color: "#c8bcac", marginTop: 8, letterSpacing: 1 },
 };
 
 const css = `
