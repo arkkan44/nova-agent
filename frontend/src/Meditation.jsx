@@ -65,7 +65,6 @@ export default function Meditation() {
   // ─── Musique d'ambiance pendant génération + lecture ──────────────────────
   useEffect(() => {
     const shouldPlay = step === "generating" || step === "player";
-
     if (shouldPlay) {
       if (!ambientRef.current) {
         const audio = new Audio("/meditation-ambient.mp3");
@@ -75,7 +74,6 @@ export default function Meditation() {
       }
       const audio = ambientRef.current;
       audio.play().catch(() => {});
-      // Fondu entrant
       let v = audio.volume;
       const iv = setInterval(() => {
         v = Math.min(v + 0.01, 0.2);
@@ -83,24 +81,16 @@ export default function Meditation() {
         if (v >= 0.2) clearInterval(iv);
       }, 80);
     } else {
-      // Fondu sortant et pause
       if (ambientRef.current) {
         const audio = ambientRef.current;
         let v = audio.volume;
         const iv = setInterval(() => {
           v = Math.max(v - 0.02, 0);
           audio.volume = v;
-          if (v <= 0) { clearInterval(iv); audio.pause(); }
+          if (v <= 0) { clearInterval(iv); audio.pause(); ambientRef.current = null; }
         }, 80);
       }
     }
-
-    return () => {
-      if (ambientRef.current && !shouldPlay) {
-        ambientRef.current.pause();
-        ambientRef.current = null;
-      }
-    };
   }, [step]);
 
   const loadProfil = async (userId) => {
