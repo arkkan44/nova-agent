@@ -508,7 +508,7 @@ export default function App() {
   return (
     <div style={{ ...styles.root, background: T.bgRoot, color: T.textPrimary }}>
       <style>{css}</style>
-      <div style={styles.videoBg}><div id="ytplayer" style={styles.videoIframe} /></div>
+      <div style={{ ...styles.videoBg, display: isDay ? "none" : "block" }}><div id="ytplayer" style={styles.videoIframe} /></div>
       <div style={{ ...styles.videoOverlay, background: isDay ? "rgba(245,240,232,0.55)" : "rgba(0,0,0,0.75)" }} />
       <div style={styles.particleContainer}>
         {PARTICLES.map((p) => <div key={p.id} className="particle" style={{ left: `${p.x}%`, top: `${p.y}%`, width: p.size, height: p.size, animationDuration: `${p.duration}s`, animationDelay: `${p.delay}s` }} />)}
@@ -576,7 +576,7 @@ export default function App() {
             </button>
           </div>
 
-          <span style={styles.planBadge}>{subscription?.plan === "premium" ? "✦ Premium" : `Gratuit · ${FREE_LIMIT - (subscription?.messages_today || 0)} msg restants`}</span>
+          <span style={{ ...styles.planBadge, color: T.gold }}>{subscription?.plan === "premium" ? "✦ Premium" : `Gratuit · ${FREE_LIMIT - (subscription?.messages_today || 0)} msg restants`}</span>
 
           {/* Taille du texte */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -610,9 +610,9 @@ export default function App() {
       <div style={styles.container}>
         <div style={styles.header}>
           <div style={styles.logoWrap}><div style={styles.logoRing} className="ring-pulse" /><div style={styles.logoInner}><span style={styles.logoSymbol}>☽✦☾</span></div></div>
-          {!started && (<><h1 style={styles.title}>NOVA</h1><p style={styles.subtitle}>Agent d'Éveil & de Réalisation de Soi</p>
-            {profil?.prenom && <p style={styles.greeting}>Bienvenue, {profil.prenom} ✦</p>}<p style={styles.desc}>Aux frontières de la conscience, les mystiques, les expérienceurs d'EMI, les guides spirituels nous ont rapporté l'essentiel. NOVA vous aide à l'appliquer à ce que vous vivez aujourd'hui, ici et maintenant.</p></>)}
-          {started && <h2 style={styles.titleSmall}>NOVA</h2>}
+          {!started && (<><h1 style={{ ...styles.title, color: T.textTitle }}>NOVA</h1><p style={{ ...styles.subtitle, color: T.textSecond }}>Agent d'Éveil & de Réalisation de Soi</p>
+            {profil?.prenom && <p style={{ ...styles.greeting, color: T.textTitle }}>Bienvenue, {profil.prenom} ✦</p>}<p style={{ ...styles.desc, color: T.textPrimary }}>Aux frontières de la conscience, les mystiques, les expérienceurs d'EMI, les guides spirituels nous ont rapporté l'essentiel. NOVA vous aide à l'appliquer à ce que vous vivez aujourd'hui, ici et maintenant.</p></>)}
+          {started && <h2 style={{ ...styles.titleSmall, color: T.textTitle }}>NOVA</h2>}
         </div>
 
         {adminNotice && <div style={styles.adminNotice}>{adminNotice}</div>}
@@ -631,7 +631,7 @@ export default function App() {
           <div style={styles.messages}>
             {messages.map((m, i) => (
               <div key={i} style={m.role === "user" ? styles.userBubble : styles.aiBubble} className="msg-fade-in">
-                {m.role === "assistant" && <div style={styles.aiLabel}>✦ Nova</div>}
+                {m.role === "assistant" && <div style={{ ...styles.aiLabel, color: T.textTitle }}>✦ Nova</div>}
                 <div style={m.role === "user" ? { ...styles.userText, background: T.bgUserMsg } : { ...styles.aiText, background: T.bgMsg, color: T.textPrimary }}>
                   {m.content.split("\n").map((line, j) => (
                     <span key={j}>{line.replace(/\*\*(.*?)\*\*/g, "$1")}{j < m.content.split("\n").length - 1 && <br />}</span>
@@ -641,7 +641,7 @@ export default function App() {
             ))}
             {loading && (
               <div style={styles.aiBubble} className="msg-fade-in">
-                <div style={styles.aiLabel}>✦ Nova</div>
+                <div style={{ ...styles.aiLabel, color: T.textTitle }}>✦ Nova</div>
                 <div style={{ ...styles.aiText, background: T.bgMsg, color: T.textPrimary }}>
                   {streamText ? <>{streamText.split("\n").map((line, j) => (<span key={j}>{line}{j < streamText.split("\n").length - 1 && <br />}</span>))}<span className="cursor-blink">|</span></> : <div style={styles.dots}><span className="dot" /><span className="dot" style={{ animationDelay: "0.2s" }} /><span className="dot" style={{ animationDelay: "0.4s" }} /></div>}
                 </div>
@@ -771,8 +771,11 @@ const css = `
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--nova-scroll, rgba(200,160,80,0.4)); border-radius: 2px; }
   [data-theme="day"] input::placeholder, [data-theme="day"] textarea::placeholder { color: rgba(0,0,0,0.3); }
-  [data-theme="day"] .particle { background: radial-gradient(circle, rgba(180,140,20,0.4) 0%, transparent 70%) !important; }
-  [data-theme="day"] .conv-item:hover { background: rgba(139,105,20,0.08) !important; }
-  [data-theme="day"] .new-conv-btn:hover { background: rgba(139,105,20,0.15) !important; }
-  [data-theme="day"] .input-glow:focus-within { border-color: rgba(139,105,20,0.6) !important; box-shadow: 0 0 16px rgba(139,105,20,0.1); }
+  [data-theme="day"] .particle { background: radial-gradient(circle, rgba(90,62,8,0.25) 0%, transparent 70%) !important; }
+  [data-theme="day"] .conv-item:hover { background: rgba(90,62,8,0.06) !important; }
+  [data-theme="day"] .new-conv-btn:hover { background: rgba(90,62,8,0.1) !important; }
+  [data-theme="day"] .input-glow:focus-within { border-color: rgba(90,62,8,0.5) !important; box-shadow: 0 0 16px rgba(90,62,8,0.08); }
+  [data-theme="day"] .suggestion-btn:hover { background: rgba(90,62,8,0.1) !important; border-color: rgba(90,62,8,0.4) !important; }
+  [data-theme="day"] .menu-btn:hover { background: rgba(90,62,8,0.08) !important; border-color: rgba(90,62,8,0.4) !important; }
+  [data-theme="day"] .send-btn:hover:not(:disabled) { box-shadow: 0 0 24px rgba(90,62,8,0.4) !important; }
 `;
