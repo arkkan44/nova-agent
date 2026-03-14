@@ -610,8 +610,8 @@ export default function App() {
       <div style={styles.container}>
         <div style={styles.header}>
           <div style={styles.logoWrap}>
-            <div style={{ ...styles.logoRing, border: `1px solid ${isDay ? "rgba(90,62,8,0.6)" : "rgba(200,160,80,0.6)"}` }} className="ring-pulse" />
-            <div style={{ ...styles.logoInner, background: isDay ? "radial-gradient(circle, rgba(90,62,8,0.15) 0%, rgba(90,62,8,0.08) 100%)" : "radial-gradient(circle, rgba(139,90,200,0.3) 0%, rgba(200,160,80,0.15) 100%)", border: `1px solid ${isDay ? "rgba(90,62,8,0.3)" : "rgba(200,160,80,0.3)"}` }}>
+            <div style={{ ...styles.logoRing, border: "1px solid rgba(200,160,80,0.6)" }} className="ring-pulse" />
+            <div style={{ ...styles.logoInner, background: "radial-gradient(circle, rgba(139,90,200,0.5) 0%, rgba(100,50,180,0.3) 100%)", border: "1px solid rgba(139,90,200,0.5)" }}>
               <span style={{ ...styles.logoSymbol, color: T.textTitle }}>☽✦☾</span>
             </div>
           </div>
@@ -662,7 +662,7 @@ export default function App() {
         <div style={styles.inputArea}>
           <div style={{ ...styles.inputWrap, background: isDay ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.1)", border: `1px solid ${isDay ? "rgba(90,62,8,0.35)" : "rgba(200,160,80,0.35)"}` }} className="input-glow">
             <textarea style={{ ...styles.textarea, color: isDay ? "#1a1208" : "#ffffff" }} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKey} placeholder="Posez votre question ou partagez ce qui vous habite..." rows={2} disabled={loading} />
-            <button style={{ ...styles.sendBtn, opacity: input.trim() && !loading ? 1 : 0.4, background: "linear-gradient(135deg, #b8860b 0%, #d4a84b 50%, #a0720a 100%)", boxShadow: "0 0 20px rgba(200,160,80,0.8), 0 0 40px rgba(200,160,80,0.4)", border: "2px solid #e8c060" }} className="send-btn" onClick={() => sendMessage()} disabled={!input.trim() || loading}>✦</button>
+            <button style={{ ...styles.sendBtn, opacity: input.trim() && !loading ? 1 : 0.4, background: "linear-gradient(135deg, #e8c060 0%, #f0d080 50%, #d4a84b 100%)", boxShadow: "0 0 24px rgba(240,208,128,0.8), 0 0 48px rgba(200,160,80,0.4)", border: "2px solid #f0d080", color: "#6b2d8b" }} className="send-btn" onClick={() => sendMessage()} disabled={!input.trim() || loading}>✦</button>
             <a href="/vocal" style={{ ...styles.vocalBtn, background: isDay ? "rgba(90,62,8,0.12)" : "rgba(200,160,80,0.08)", border: `1px solid ${isDay ? "rgba(90,62,8,0.4)" : "rgba(200,160,80,0.2)"}` }} className="vocal-btn" title="Mode vocal NOVA">🎤</a>
           </div>
           <p style={styles.hint}>✦ Entrée pour envoyer · Shift+Entrée pour nouvelle ligne</p>
@@ -730,7 +730,7 @@ const styles = {
   adminNotice: { background: "rgba(200,160,80,0.12)", border: "1px solid rgba(200,160,80,0.4)", borderRadius: 12, padding: "12px 20px", color: "#d4a84b", fontSize: "0.812rem", marginBottom: 16, letterSpacing: 0.5, whiteSpace: "pre-line", maxWidth: 640, width: "100%" },
   suggestions: { display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center", marginBottom: 32, maxWidth: 640 },
   suggestion: { background: "rgba(200,160,80,0.1)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 24, padding: "10px 18px", color: "#e8d8b8", fontSize: "0.812rem", cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s ease", letterSpacing: 0.5 },
-  suggestionHighlight: { background: "linear-gradient(135deg, #b8860b 0%, #c8a050 50%, #a0720a 100%)", border: "1px solid #d4a84b", borderRadius: 24, padding: "10px 22px", color: "#0a0800", fontSize: "0.812rem", cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s ease", letterSpacing: 0.5, fontWeight: "700", boxShadow: "0 0 24px rgba(200,160,80,0.6)" },
+  suggestionHighlight: { background: "linear-gradient(135deg, #e8c060 0%, #f0d080 50%, #d4a84b 100%)", border: "1px solid #f0d080", borderRadius: 24, padding: "10px 22px", color: "#3a2800", fontSize: "0.812rem", cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s ease", letterSpacing: 0.5, fontWeight: "700", boxShadow: "0 0 28px rgba(240,208,128,0.7)" },
   messages: { flex: 1, width: "100%", overflowY: "auto", paddingBottom: 20, display: "flex", flexDirection: "column", gap: 20 },
   userBubble: { display: "flex", flexDirection: "column", alignItems: "flex-end" },
   aiBubble: { display: "flex", flexDirection: "column", alignItems: "flex-start" },
@@ -758,7 +758,7 @@ const css = `
   .menu-btn:hover { background: rgba(139,90,200,0.85) !important; border-color: #d4a84b !important; color: #fff !important; transform: scale(1.05); }
   .vocal-btn:hover { box-shadow: 0 0 28px rgba(200,160,80,0.9) !important; transform: scale(1.1); }
   .new-conv-btn:hover { background: linear-gradient(135deg, #7b4fa0, #d4a84b) !important; color: #fff !important; border-color: #d4a84b !important; box-shadow: 0 0 20px rgba(139,90,200,0.5) !important; }
-  .meditation-side-btn:hover { background: linear-gradient(135deg, #d4a84b, #b8860b) !important; border-color: #d4a84b !important; color: #0a0800 !important; box-shadow: 0 0 20px rgba(200,160,80,0.5) !important; }
+  .meditation-side-btn:hover { background: linear-gradient(135deg, #7b4fa0, #d4a84b) !important; border-color: #d4a84b !important; color: #fff !important; box-shadow: 0 0 20px rgba(139,90,200,0.5) !important; }
   .meditation-item:hover { background: rgba(139,90,200,0.12) !important; border-color: rgba(139,90,200,0.4) !important; }
   .conv-item:hover { background: rgba(200,160,80,0.08) !important; }
   .email-btn:hover { background: rgba(200,160,80,0.25) !important; border-color: rgba(200,160,80,0.5) !important; transform: scale(1.1); }
