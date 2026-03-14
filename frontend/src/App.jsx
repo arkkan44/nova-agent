@@ -64,7 +64,26 @@ function AmbientInline() {
     audio.loop = true;
     audio.volume = 0;
     audioRef.current = audio;
-    return () => { audio.pause(); audio.src = ""; };
+
+    // Démarrage automatique au premier clic utilisateur sur la page
+    const startAudio = async () => {
+      await audio.play().catch(() => {});
+      let v = 0;
+      const iv = setInterval(() => { v = Math.min(v + 0.015, 0.25); audio.volume = v; if (v >= 0.25) clearInterval(iv); }, 80);
+      setPlaying(true);
+      document.removeEventListener("click", startAudio);
+      document.removeEventListener("touchstart", startAudio);
+    };
+
+    document.addEventListener("click", startAudio, { once: true });
+    document.addEventListener("touchstart", startAudio, { once: true });
+
+    return () => {
+      audio.pause();
+      audio.src = "";
+      document.removeEventListener("click", startAudio);
+      document.removeEventListener("touchstart", startAudio);
+    };
   }, []);
 
   const toggle = async () => {
@@ -84,14 +103,30 @@ function AmbientInline() {
   };
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
       <input type="range" min="0" max="1" step="0.05" value={volume}
         onChange={e => { const v = parseFloat(e.target.value); setVolume(v); if (audioRef.current && playing) audioRef.current.volume = v; }}
-        style={{ width: 60, accentColor: "#d4a84b", cursor: "pointer" }}
+        style={{ width: 64, accentColor: "#d4a84b", cursor: "pointer" }}
       />
-      <button onClick={toggle} style={{ background: playing ? "rgba(200,160,80,0.2)" : "rgba(200,160,80,0.08)", border: `1px solid ${playing ? "rgba(200,160,80,0.8)" : "rgba(200,160,80,0.3)"}`, borderRadius: "50%", width: 34, height: 34, color: playing ? "#d4a84b" : "#706050", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.3s", flexShrink: 0, boxShadow: playing ? "0 0 12px rgba(200,160,80,0.4)" : "none" }}>
-        {playing ? "◉" : "◎"}
+      <button onClick={toggle} style={{
+        background: playing
+          ? "linear-gradient(135deg, #b8860b, #d4a84b)"
+          : "rgba(200,160,80,0.12)",
+        border: `1.5px solid ${playing ? "#d4a84b" : "rgba(200,160,80,0.4)"}`,
+        borderRadius: "50%",
+        width: 40, height: 40,
+        color: playing ? "#0a0800" : "#d4a84b",
+        fontSize: playing ? 14 : 16,
+        cursor: "pointer",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        transition: "all 0.3s",
+        flexShrink: 0,
+        boxShadow: playing ? "0 0 18px rgba(200,160,80,0.6), 0 0 36px rgba(200,160,80,0.3)" : "none",
+        animation: playing ? "ambientGlow 3s ease-in-out infinite" : "none",
+      }}>
+        {playing ? "❚❚" : "▶"}
       </button>
+      <style>{`.ambient-glow { animation: ambientGlow 3s ease-in-out infinite; } @keyframes ambientGlow { 0%,100% { box-shadow: 0 0 14px rgba(200,160,80,0.5); } 50% { box-shadow: 0 0 28px rgba(200,160,80,0.9); } }`}</style>
     </div>
   );
 }
