@@ -603,7 +603,7 @@ export default function App() {
       {sidebarOpen && <div style={styles.sidebarOverlay} onClick={() => setSidebarOpen(false)} />}
 
       {/* Boutons fixes */}
-      <button style={{ ...styles.menuBtn, background: "linear-gradient(135deg, #b8860b, #d4a84b)", border: "1.5px solid #d4a84b", color: "#0a0800", boxShadow: "0 0 20px rgba(200,160,80,0.6), 0 0 40px rgba(200,160,80,0.3)" }} className="menu-btn" onClick={() => setSidebarOpen(true)}>☰</button>
+      <button style={{ ...styles.menuBtn, background: isDay ? "rgba(255,252,245,0.92)" : "rgba(0,0,0,0)", border: `1.5px solid #d4a84b`, color: "#d4a84b", boxShadow: isDay ? "0 2px 12px rgba(200,160,80,0.2)" : "none", backdropFilter: isDay ? "blur(10px)" : "none" }} className="menu-btn" onClick={() => setSidebarOpen(true)}>☰</button>
       
       {started && <button style={styles.homeBtnFixed} className="home-btn" onClick={handleHome}>↩ Accueil</button>}
 
@@ -662,7 +662,7 @@ export default function App() {
         <div style={styles.inputArea}>
           <div style={{ ...styles.inputWrap, background: isDay ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.1)", border: `1px solid ${isDay ? "rgba(90,62,8,0.35)" : "rgba(200,160,80,0.35)"}` }} className="input-glow">
             <textarea style={{ ...styles.textarea, color: isDay ? "#1a1208" : "#ffffff" }} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKey} placeholder="Posez votre question ou partagez ce qui vous habite..." rows={2} disabled={loading} />
-            <button style={{ ...styles.sendBtn, opacity: input.trim() && !loading ? 1 : 0.4, background: "linear-gradient(135deg, #e8c060 0%, #f0d080 50%, #d4a84b 100%)", boxShadow: "0 0 24px rgba(240,208,128,0.8), 0 0 48px rgba(200,160,80,0.4)", border: "2px solid #f0d080", color: "#6b2d8b" }} className="send-btn" onClick={() => sendMessage()} disabled={!input.trim() || loading}>✦</button>
+            <button style={{ ...styles.sendBtn, opacity: input.trim() && !loading ? 1 : 0.4, background: "linear-gradient(135deg, #c8920a 0%, #e8b830 50%, #c8920a 100%)", boxShadow: "0 0 20px rgba(220,180,40,0.9), 0 0 40px rgba(200,160,0,0.5)", border: "2px solid #e8c840", color: "#6b2d8b" }} className="send-btn" onClick={() => sendMessage()} disabled={!input.trim() || loading}>✦</button>
             <a href="/vocal" style={{ ...styles.vocalBtn, background: isDay ? "rgba(90,62,8,0.12)" : "rgba(200,160,80,0.08)", border: `1px solid ${isDay ? "rgba(90,62,8,0.4)" : "rgba(200,160,80,0.2)"}` }} className="vocal-btn" title="Mode vocal NOVA">🎤</a>
           </div>
           <p style={styles.hint}>✦ Entrée pour envoyer · Shift+Entrée pour nouvelle ligne</p>
