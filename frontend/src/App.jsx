@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 import Profil from "./Profil.jsx";
-import InstallBanner from "./components/InstallBanner.jsx";
 
 const SUPABASE_URL = "https://izqedljmaiylwjkyoiwh.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6cWVkbGptYWl5bHdqa3lvaXdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2MzMyNjcsImV4cCI6MjA4ODIwOTI2N30.GcelpRphmj24YbV1T3ttFNuHSpy6g3t6NE6kIM33T4o";
@@ -80,7 +79,6 @@ export default function App() {
   const [sendingEmail, setSendingEmail] = useState(null);
   const [meditations, setMeditations] = useState([]);
   const [emailNotice, setEmailNotice] = useState("");
-  const [fontSize, setFontSize] = useState(15);
 
   const messagesEndRef = useRef(null);
   const conversationHistory = useRef([]);
@@ -360,8 +358,6 @@ export default function App() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
 
-  const styles = getStyles(fontSize);
-
   // ─── ÉCRAN AUTH ──────────────────────────────────────────────────────────────
   if (!user) return (
     <div style={styles.root}>
@@ -474,14 +470,6 @@ export default function App() {
 
         <div style={styles.sidebarFooter}>
           <span style={styles.planBadge}>{subscription?.plan === "premium" ? "✦ Premium" : `Gratuit · ${FREE_LIMIT - (subscription?.messages_today || 0)} msg restants`}</span>
-          <div style={styles.fontSizeRow}>
-            <span style={styles.fontSizeLabel}>Taille du texte</span>
-            <div style={styles.fontSizeBtns}>
-              <button style={styles.fontSizeBtn} onClick={() => setFontSize(f => Math.max(12, f - 1))}>A−</button>
-              <span style={styles.fontSizeValue}>{fontSize}</span>
-              <button style={styles.fontSizeBtn} onClick={() => setFontSize(f => Math.min(22, f + 1))}>A+</button>
-            </div>
-          </div>
           <button style={styles.logoutBtn} onClick={handleLogout}>Déconnexion</button>
         </div>
       </div>
@@ -545,13 +533,12 @@ export default function App() {
           <p style={styles.hint}>✦ Entrée pour envoyer · Shift+Entrée pour nouvelle ligne</p>
         </div>
       </div>
-      <InstallBanner />
     </div>
   );
 }
 
-const getStyles = (fontSize = 15) => ({
-  root: { minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Palatino Linotype', 'Book Antiqua', Palatino, serif", color: "#f0e8d8", overflow: "hidden", position: "relative" },
+const styles = {
+  root: { minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Palatino Linotype', 'Book Antiqua', Palatino, serif", color: "#f0e8d8", overflow: "hidden", position: "relative", fontSize: fontSize },
   videoBg: { position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", overflow: "hidden" },
   videoIframe: { position: "absolute", top: "50%", left: "50%", transform: "translateX(-50%) translateY(-50%)", width: "100vw", height: "56.25vw", minHeight: "100vh", minWidth: "177.77vh", border: "none" },
   videoOverlay: { position: "fixed", inset: 0, zIndex: 1, background: "rgba(0,0,0,0.75)", pointerEvents: "none" },
@@ -589,7 +576,7 @@ const getStyles = (fontSize = 15) => ({
   planBadge: { fontSize: 12, color: "#d4a84b", letterSpacing: 0.5 },
   logoutBtn: { background: "none", border: "1px solid rgba(200,160,80,0.2)", borderRadius: 20, padding: "8px 16px", color: "#a09080", fontFamily: "inherit", fontSize: 12, cursor: "pointer", transition: "all 0.3s" },
   sidebarOverlay: { position: "fixed", inset: 0, zIndex: 150, background: "rgba(0,0,0,0.4)" },
-  menuBtn: { position: "fixed", top: 64, left: 16, zIndex: 100, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 30, padding: "16px 24px", color: "#d4a84b", fontSize: 26, cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s" },
+  menuBtn: { position: "fixed", top: 20, left: 20, zIndex: 100, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 30, padding: "8px 14px", color: "#d4a84b", fontSize: 16, cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s" },
   vocalBtn: { background: "rgba(200,160,80,0.08)", border: "1px solid rgba(200,160,80,0.2)", borderRadius: "50%", width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 18, textDecoration: "none", flexShrink: 0, transition: "all 0.3s ease" },
   homeBtnFixed: { position: "fixed", top: 64, right: 20, zIndex: 100, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 30, padding: "8px 18px", color: "#d4a84b", fontSize: 12, cursor: "pointer", fontFamily: "'Palatino Linotype', serif", letterSpacing: 1, transition: "all 0.3s" },
   container: { position: "relative", zIndex: 3, width: "100%", maxWidth: 720, minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 24px 24px", boxSizing: "border-box" },
@@ -612,20 +599,15 @@ const getStyles = (fontSize = 15) => ({
   userBubble: { display: "flex", flexDirection: "column", alignItems: "flex-end" },
   aiBubble: { display: "flex", flexDirection: "column", alignItems: "flex-start" },
   aiLabel: { fontSize: 11, letterSpacing: 3, color: "#d4a84b", marginBottom: 6, textTransform: "uppercase" },
-  userText: { background: "rgba(139,90,200,0.25)", border: "1px solid rgba(139,90,200,0.4)", borderRadius: "20px 20px 4px 20px", padding: "14px 18px", fontSize: fontSize, lineHeight: 1.7, maxWidth: "80%", color: "#f0e8d8" },
-  aiText: { background: "rgba(255,255,255,0.08)", border: "1px solid rgba(200,160,80,0.25)", borderRadius: "4px 20px 20px 20px", padding: "16px 20px", fontSize: fontSize, lineHeight: 1.9, maxWidth: "90%", color: "#ede0cc" },
+  userText: { background: "rgba(139,90,200,0.25)", border: "1px solid rgba(139,90,200,0.4)", borderRadius: "20px 20px 4px 20px", padding: "14px 18px", fontSize: 15, lineHeight: 1.7, maxWidth: "80%", color: "#f0e8d8" },
+  aiText: { background: "rgba(255,255,255,0.08)", border: "1px solid rgba(200,160,80,0.25)", borderRadius: "4px 20px 20px 20px", padding: "16px 20px", fontSize: 15, lineHeight: 1.9, maxWidth: "90%", color: "#ede0cc" },
   dots: { display: "flex", gap: 6, alignItems: "center", height: 20 },
   inputArea: { width: "100%", paddingTop: 20 },
   inputWrap: { display: "flex", alignItems: "flex-end", gap: 12, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(200,160,80,0.35)", borderRadius: 16, padding: "12px 16px" },
   textarea: { flex: 1, background: "transparent", border: "none", outline: "none", color: "#ffffff", fontFamily: "inherit", fontSize: 15, lineHeight: 1.7, resize: "none", padding: 0 },
   sendBtn: { background: "linear-gradient(135deg, #b8860b 0%, #d4a84b 50%, #a0720a 100%)", border: "2px solid #e8c060", borderRadius: "50%", width: 44, height: 44, cursor: "pointer", color: "#0a0800", fontSize: 20, fontWeight: "bold", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.3s ease", flexShrink: 0, boxShadow: "0 0 20px rgba(200,160,80,0.8), 0 0 40px rgba(200,160,80,0.4)" },
   hint: { textAlign: "center", fontSize: 11, color: "#c8bcac", marginTop: 8, letterSpacing: 1 },
-  fontSizeRow: { display: "flex", justifyContent: "space-between", alignItems: "center" },
-  fontSizeLabel: { fontSize: 12, color: "#a09080", letterSpacing: 0.5 },
-  fontSizeBtns: { display: "flex", alignItems: "center", gap: 8 },
-  fontSizeBtn: { background: "rgba(200,160,80,0.1)", border: "1px solid rgba(200,160,80,0.3)", borderRadius: 20, padding: "4px 12px", color: "#d4a84b", fontFamily: "inherit", fontSize: 14, cursor: "pointer" },
-  fontSizeValue: { fontSize: 12, color: "#d4a84b", minWidth: 20, textAlign: "center" },
-});
+};
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&display=swap');
