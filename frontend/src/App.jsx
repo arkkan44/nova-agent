@@ -669,7 +669,7 @@ export default function App() {
         <div style={styles.inputArea}>
           <div style={{ ...styles.inputWrap, background: isDay ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.1)", border: `1px solid ${isDay ? "rgba(90,62,8,0.35)" : "rgba(200,160,80,0.35)"}` }} className="input-glow">
             <textarea style={{ ...styles.textarea, color: isDay ? "#1a1208" : "#ffffff" }} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKey} placeholder="Posez votre question ou partagez ce qui vous habite..." rows={2} disabled={loading} />
-            <button style={{ ...styles.sendBtn, background: "linear-gradient(135deg, #c8920a 0%, #e8b830 50%, #c8920a 100%)", boxShadow: "0 0 20px rgba(220,180,40,0.9), 0 0 40px rgba(200,160,0,0.5)", border: "2px solid #e8c840", color: "#6b2d8b" }} className="send-btn" onClick={() => sendMessage()} disabled={!input.trim() || loading}>✦</button>
+            <button style={{ ...styles.sendBtn, opacity: input.trim() && !loading ? 1 : 0.35 }} className="send-btn" onClick={() => sendMessage()} disabled={!input.trim() || loading}>✦</button>
             <a href="/vocal" style={{ ...styles.vocalBtn, background: isDay ? "rgba(90,62,8,0.12)" : "rgba(200,160,80,0.08)", border: `1px solid ${isDay ? "rgba(90,62,8,0.4)" : "rgba(200,160,80,0.2)"}` }} className="vocal-btn" title="Mode vocal NOVA">🎤</a>
           </div>
           <p style={styles.hint}>✦ Entrée pour envoyer · Shift+Entrée pour nouvelle ligne</p>
@@ -772,7 +772,7 @@ const css = `
   .email-tooltip {
     display: none;
     position: absolute;
-    bottom: calc(100% + 10px);
+    top: calc(100% + 10px);
     right: 0;
     width: 230px;
     background: rgba(8,4,14,0.96);
@@ -792,10 +792,10 @@ const css = `
   .email-tooltip::after {
     content: "";
     position: absolute;
-    top: 100%;
+    bottom: 100%;
     right: 10px;
     border: 6px solid transparent;
-    border-top-color: rgba(200,160,80,0.4);
+    border-bottom-color: rgba(200,160,80,0.4);
   }
   .email-tooltip-wrap:hover .email-tooltip { display: block; }
   @keyframes tooltipIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
