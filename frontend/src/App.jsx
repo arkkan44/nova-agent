@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 import Profil from "./Profil.jsx";
 import InstallBanner from "./components/InstallBanner.jsx";
+import { useTheme, THEMES } from "./hooks/useTheme.js";
 
 const SUPABASE_URL = "https://izqedljmaiylwjkyoiwh.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6cWVkbGptYWl5bHdqa3lvaXdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2MzMyNjcsImV4cCI6MjA4ODIwOTI2N30.GcelpRphmj24YbV1T3ttFNuHSpy6g3t6NE6kIM33T4o";
@@ -158,10 +159,21 @@ export default function App() {
   const [meditations, setMeditations] = useState([]);
   const [emailNotice, setEmailNotice] = useState("");
   const [fontSize, setFontSize] = useState(15);
+  const { theme, toggleTheme, isDay } = useTheme();
+  const T = THEMES[theme];
 
   useEffect(() => {
     document.documentElement.style.fontSize = fontSize + "px";
   }, [fontSize]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--nova-bg", T.bg);
+    root.style.setProperty("--nova-text", T.textPrimary);
+    root.style.setProperty("--nova-gold", T.gold);
+    root.style.setProperty("--nova-input-bg", T.bgInput);
+    root.style.setProperty("--nova-scroll", T.scrollThumb);
+  }, [theme]);
 
   const messagesEndRef = useRef(null);
   const conversationHistory = useRef([]);
@@ -494,18 +506,18 @@ export default function App() {
 
   // ─── APP PRINCIPALE ──────────────────────────────────────────────────────────
   return (
-    <div style={styles.root}>
+    <div style={{ ...styles.root, background: T.bgRoot, color: T.textPrimary }}>
       <style>{css}</style>
       <div style={styles.videoBg}><div id="ytplayer" style={styles.videoIframe} /></div>
-      <div style={styles.videoOverlay} />
+      <div style={{ ...styles.videoOverlay, background: isDay ? "rgba(245,240,232,0.55)" : "rgba(0,0,0,0.75)" }} />
       <div style={styles.particleContainer}>
         {PARTICLES.map((p) => <div key={p.id} className="particle" style={{ left: `${p.x}%`, top: `${p.y}%`, width: p.size, height: p.size, animationDuration: `${p.duration}s`, animationDelay: `${p.delay}s` }} />)}
       </div>
 
       {/* Sidebar */}
-      <div style={{ ...styles.sidebar, transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)" }}>
+      <div style={{ ...styles.sidebar, background: T.bgSidebar, transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)" }}>
         <div style={styles.sidebarHeader}>
-          <span style={styles.sidebarTitle}>Conversations</span>
+          <span style={{ ...styles.sidebarTitle, color: T.gold }}>Conversations</span>
           <button style={styles.sidebarClose} onClick={() => setSidebarOpen(false)}>✕</button>
         </div>
         <button style={styles.newConvBtn} className="new-conv-btn" onClick={() => { handleHome(); setSidebarOpen(false); }}>+ Nouvelle conversation</button>
@@ -552,6 +564,18 @@ export default function App() {
         )}
 
         <div style={styles.sidebarFooter}>
+          {/* Thème jour / nuit */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <span style={{ fontSize: 12, color: T.textSecond, letterSpacing: 0.5 }}>Thème</span>
+              <span style={{ fontSize: 10, color: T.textMuted, letterSpacing: 0.3 }}>{isDay ? "Mode jour activé" : "Mode nuit activé"}</span>
+            </div>
+            <button onClick={toggleTheme} style={{ background: isDay ? "linear-gradient(135deg, #f5d06a, #e8a020)" : "linear-gradient(135deg, #1a1030, #2d1f5e)", border: `1.5px solid ${T.goldBorder}`, borderRadius: 30, padding: "8px 16px", color: isDay ? "#5a3800" : "#d4a84b", fontFamily: "inherit", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, transition: "all 0.4s", boxShadow: isDay ? "0 0 14px rgba(240,180,0,0.4)" : "0 0 14px rgba(100,80,200,0.4)" }}>
+              {isDay ? "☀️" : "🌙"}
+              <span style={{ fontSize: 11, letterSpacing: 1, fontWeight: 600 }}>{isDay ? "JOUR" : "NUIT"}</span>
+            </button>
+          </div>
+
           <span style={styles.planBadge}>{subscription?.plan === "premium" ? "✦ Premium" : `Gratuit · ${FREE_LIMIT - (subscription?.messages_today || 0)} msg restants`}</span>
 
           {/* Taille du texte */}
@@ -608,7 +632,7 @@ export default function App() {
             {messages.map((m, i) => (
               <div key={i} style={m.role === "user" ? styles.userBubble : styles.aiBubble} className="msg-fade-in">
                 {m.role === "assistant" && <div style={styles.aiLabel}>✦ Nova</div>}
-                <div style={m.role === "user" ? styles.userText : styles.aiText}>
+                <div style={m.role === "user" ? { ...styles.userText, background: T.bgUserMsg } : { ...styles.aiText, background: T.bgMsg, color: T.textPrimary }}>
                   {m.content.split("\n").map((line, j) => (
                     <span key={j}>{line.replace(/\*\*(.*?)\*\*/g, "$1")}{j < m.content.split("\n").length - 1 && <br />}</span>
                   ))}
@@ -618,7 +642,7 @@ export default function App() {
             {loading && (
               <div style={styles.aiBubble} className="msg-fade-in">
                 <div style={styles.aiLabel}>✦ Nova</div>
-                <div style={styles.aiText}>
+                <div style={{ ...styles.aiText, background: T.bgMsg, color: T.textPrimary }}>
                   {streamText ? <>{streamText.split("\n").map((line, j) => (<span key={j}>{line}{j < streamText.split("\n").length - 1 && <br />}</span>))}<span className="cursor-blink">|</span></> : <div style={styles.dots}><span className="dot" /><span className="dot" style={{ animationDelay: "0.2s" }} /><span className="dot" style={{ animationDelay: "0.4s" }} /></div>}
                 </div>
               </div>
@@ -745,5 +769,10 @@ const css = `
   input:focus { border-color: rgba(200,160,80,0.5) !important; }
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(200,160,80,0.4); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb { background: var(--nova-scroll, rgba(200,160,80,0.4)); border-radius: 2px; }
+  [data-theme="day"] input::placeholder, [data-theme="day"] textarea::placeholder { color: rgba(0,0,0,0.3); }
+  [data-theme="day"] .particle { background: radial-gradient(circle, rgba(180,140,20,0.4) 0%, transparent 70%) !important; }
+  [data-theme="day"] .conv-item:hover { background: rgba(139,105,20,0.08) !important; }
+  [data-theme="day"] .new-conv-btn:hover { background: rgba(139,105,20,0.15) !important; }
+  [data-theme="day"] .input-glow:focus-within { border-color: rgba(139,105,20,0.6) !important; box-shadow: 0 0 16px rgba(139,105,20,0.1); }
 `;
