@@ -126,8 +126,8 @@ app.post("/api/speak-meditation", async (req, res) => {
         model: "tts-1-hd",
         voice: "onyx",
         input: text,
-        speed: 1.0,
-        instructions: "Speak in a slow, deeply calm and spiritual tone. Pause gently at each ellipsis. Breathe between sentences. Your voice is warm, enveloping, like a guide leading someone into deep inner peace."
+        speed: 0.75,
+        instructions: "Speak very slowly and with great depth. Every word carries weight and space. Pause long and naturally at each ellipsis — let silence breathe. Your voice is deep, warm, enveloping, like a wise guide gently leading someone into profound inner stillness. Never rush. Each sentence flows like slow water."
       }),
     });
 
@@ -150,7 +150,7 @@ app.post("/api/speak-meditation", async (req, res) => {
 });
 
 // ─── INTRO MÉDITATION (texte fixe, mis en cache) ─────────────────────────────
-let introAudioCache = null;
+let introAudioCache = null; // Cache vidé — nouvelle vitesse 0.75
 
 app.options("/api/speak-meditation-intro", (req, res) => {
   res.set({ "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" }).sendStatus(204);
@@ -172,8 +172,8 @@ app.get("/api/speak-meditation-intro", async (req, res) => {
         model: "tts-1-hd",
         voice: "onyx",
         input: INTRO_TEXT,
-        speed: 1.0,
-        instructions: "Speak in a slow, deeply calm and spiritual tone. Pause gently at each ellipsis. Breathe between sentences. Your voice is warm, enveloping, like a guide leading someone into deep inner peace."
+        speed: 0.75,
+        instructions: "Speak very slowly and with great depth. Every word carries weight and space. Pause long and naturally at each ellipsis — let silence breathe. Your voice is deep, warm, enveloping, like a wise guide gently leading someone into profound inner stillness. Never rush. Each sentence flows like slow water."
       }),
     });
     if (!response.ok) return res.status(500).json({ error: "Erreur intro" });
