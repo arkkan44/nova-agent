@@ -306,8 +306,9 @@ Règles :
 - Utilise "vous"
 - Valide les émotions sans les amplifier
 - Guide doucement vers la sécurité intérieure et la régulation du système nerveux
-- Utilise "..." très souvent pour créer des espaces de respiration
-- Phrases courtes, ton enveloppant et sécurisant
+- Utilise "..." ABONDAMMENT après chaque idée, chaque mot clé, chaque invitation — au moins toutes les 5 à 8 mots
+- Phrases très courtes, jamais plus de 10 mots par phrase
+- Ton enveloppant et sécurisant
 - Intègre des ancrages corporels doux (respiration, sensation des pieds au sol, chaleur dans la poitrine)
 - Rappelle doucement que ces réactions sont normales et que la guérison est possible
 - Termine par un retour doux vers le présent et un ancrage de sécurité
@@ -323,8 +324,8 @@ Règles :
 - Commence directement par guider, sans introduction
 - Utilise "vous"
 - Ton doux, profond, enveloppant
-- Utilise "..." très souvent pour créer des silences naturels
-- Phrases courtes séparées par des "..."
+- Utilise "..." ABONDAMMENT après chaque idée, chaque mot clé, chaque invitation — au moins toutes les 5 à 8 mots
+- Phrases très courtes, jamais plus de 10 mots, séparées par des "..."
 - Adapte au profil spirituel
 - Termine par un retour doux
 - Texte fluide, pas de listes

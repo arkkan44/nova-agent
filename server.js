@@ -42,6 +42,16 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
+// ─── POST-TRAITEMENT TEXTE MÉDITATION ────────────────────────────────────────
+// Remplace les ... par des pauses SSML pour ralentir naturellement la voix
+const addMeditationPauses = (text) => {
+  return text
+    .replace(/\.\.\./g, '<break time="2s"/>')   // ... → pause 2 secondes
+    .replace(/\. /g, '.<break time="1s"/> ')     // Fin de phrase → pause 1 seconde
+    .replace(/,\s/g, ',<break time="0.5s"/> ')   // Virgule → pause 0.5 seconde
+    .trim();
+};
+
 // ─── CHAT ────────────────────────────────────────────────────────────────────
 app.post("/api/chat", async (req, res) => {
   try {
@@ -116,6 +126,8 @@ app.post("/api/speak-meditation", async (req, res) => {
     const { text } = req.body;
     if (!text) return res.status(400).json({ error: "Texte manquant" });
 
+    const processedText = addMeditationPauses(text);
+
     const response = await fetch("https://api.openai.com/v1/audio/speech", {
       method: "POST",
       headers: {
@@ -125,9 +137,9 @@ app.post("/api/speak-meditation", async (req, res) => {
       body: JSON.stringify({
         model: "tts-1-hd",
         voice: "onyx",
-        input: text,
-        speed: 0.75,
-        instructions: "Speak very slowly and with great depth. Every word carries weight and space. Pause long and naturally at each ellipsis — let silence breathe. Your voice is deep, warm, enveloping, like a wise guide gently leading someone into profound inner stillness. Never rush. Each sentence flows like slow water."
+        input: processedText,
+        speed: 1.0,
+        instructions: "Speak in a slow, deeply calm and spiritual tone. Honour every pause and silence. Your voice is deep, warm and enveloping, like a wise guide leading someone into profound inner stillness."
       }),
     });
 
@@ -150,7 +162,7 @@ app.post("/api/speak-meditation", async (req, res) => {
 });
 
 // ─── INTRO MÉDITATION (texte fixe, mis en cache) ─────────────────────────────
-let introAudioCache = null; // Cache vidé — nouvelle vitesse 0.75
+let introAudioCache = null;
 
 app.options("/api/speak-meditation-intro", (req, res) => {
   res.set({ "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" }).sendStatus(204);
@@ -165,15 +177,16 @@ app.get("/api/speak-meditation-intro", async (req, res) => {
       return res.send(introAudioCache);
     }
     const INTRO_TEXT = "Installez-vous confortablement... Fermez doucement les yeux... Laissez votre corps s'alourdir, s'abandonner... Vous êtes en sécurité... NOVA est là, avec vous... Respirez... simplement... profondément... Laissez chaque souffle vous porter un peu plus loin... vers l'intérieur... vers ce silence qui vous attend... toujours là... toujours présent... Dans quelques instants... votre méditation va commencer...";
+    const processedIntro = addMeditationPauses(INTRO_TEXT);
     const response = await fetch("https://api.openai.com/v1/audio/speech", {
       method: "POST",
       headers: { "Authorization": "Bearer " + process.env.OPENAI_API_KEY, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "tts-1-hd",
         voice: "onyx",
-        input: INTRO_TEXT,
-        speed: 0.75,
-        instructions: "Speak very slowly and with great depth. Every word carries weight and space. Pause long and naturally at each ellipsis — let silence breathe. Your voice is deep, warm, enveloping, like a wise guide gently leading someone into profound inner stillness. Never rush. Each sentence flows like slow water."
+        input: processedIntro,
+        speed: 1.0,
+        instructions: "Speak in a slow, deeply calm and spiritual tone. Honour every pause and silence. Your voice is deep, warm and enveloping, like a wise guide leading someone into profound inner stillness."
       }),
     });
     if (!response.ok) return res.status(500).json({ error: "Erreur intro" });
