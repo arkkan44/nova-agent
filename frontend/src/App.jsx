@@ -160,6 +160,7 @@ export default function App() {
   const [emailNotice, setEmailNotice] = useState("");
   const [fontSize, setFontSize] = useState(15);
   const [typedPlaceholder, setTypedPlaceholder] = useState("");
+  const [isPausePhrase, setIsPausePhrase] = useState(false);
   const { theme, toggleTheme, isDay } = useTheme();
   const T = THEMES[theme];
 
@@ -177,20 +178,30 @@ export default function App() {
       "Je ressens un vide existentiel, par où commencer ?",
       "Comment distinguer l'intuition de la peur ?",
     ];
+    const PAUSE_PHRASE = "Posez votre question à NOVA ou partagez ce qui vous habite...";
 
     let phraseIndex = 0;
     let charIndex = 0;
     let isDeleting = false;
+    let showingPause = false;
     let timeout;
 
     const type = () => {
+      if (showingPause) {
+        // On est en train d'afficher la phrase de transition — on attend puis on passe à la suivante
+        phraseIndex = (phraseIndex + 1) % PHRASES.length;
+        showingPause = false;
+        charIndex = 0;
+        timeout = setTimeout(type, 600);
+        return;
+      }
+
       const current = PHRASES[phraseIndex];
 
       if (!isDeleting) {
         setTypedPlaceholder(current.slice(0, charIndex + 1));
         charIndex++;
         if (charIndex === current.length) {
-          // Pause en fin de phrase avant d'effacer
           timeout = setTimeout(() => { isDeleting = true; type(); }, 2800);
           return;
         }
@@ -200,8 +211,11 @@ export default function App() {
         charIndex--;
         if (charIndex === 0) {
           isDeleting = false;
-          phraseIndex = (phraseIndex + 1) % PHRASES.length;
-          timeout = setTimeout(type, 500);
+          showingPause = true;
+          // Afficher la phrase de transition en fondu
+          setTypedPlaceholder(PAUSE_PHRASE);
+          setIsPausePhrase(true);
+          timeout = setTimeout(() => { setIsPausePhrase(false); type(); }, 2200);
           return;
         }
         timeout = setTimeout(type, 18);
@@ -714,7 +728,7 @@ export default function App() {
 
         <div style={styles.inputArea}>
           <div style={{ ...styles.inputWrap, background: isDay ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.1)", border: `1px solid ${isDay ? "rgba(90,62,8,0.35)" : "rgba(200,160,80,0.35)"}` }} className="input-glow">
-            <textarea style={{ ...styles.textarea, color: isDay ? "#1a1208" : "#ffffff" }} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKey} placeholder={typedPlaceholder} rows={2} disabled={loading} />
+            <textarea style={{ ...styles.textarea, color: isDay ? "#1a1208" : "#ffffff" }} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKey} placeholder={typedPlaceholder} className={isPausePhrase ? "placeholder-fade" : ""} rows={2} disabled={loading} />
             <button style={{ ...styles.sendBtn, opacity: input.trim() && !loading ? 1 : 0.35 }} className="send-btn" onClick={() => sendMessage()} disabled={!input.trim() || loading}>✦</button>
             <a href="/vocal" style={{ ...styles.vocalBtn, background: isDay ? "rgba(90,62,8,0.12)" : "rgba(200,160,80,0.08)", border: `1px solid ${isDay ? "rgba(90,62,8,0.4)" : "rgba(200,160,80,0.2)"}` }} className="vocal-btn" title="Mode vocal NOVA">🎤</a>
           </div>
@@ -859,6 +873,8 @@ const css = `
   @keyframes blink { from, to { opacity: 1; } 50% { opacity: 0; } }
   input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.55); }
   [data-theme="day"] textarea::placeholder { color: rgba(26,18,8,0.45) !important; }
+  .placeholder-fade::placeholder { animation: placeholderFadeIn 0.8s ease forwards; }
+  @keyframes placeholderFadeIn { from { opacity: 0; } to { opacity: 0.55; } }
   input:focus { border-color: rgba(200,160,80,0.5) !important; }
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
