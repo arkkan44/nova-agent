@@ -159,12 +159,58 @@ export default function App() {
   const [meditations, setMeditations] = useState([]);
   const [emailNotice, setEmailNotice] = useState("");
   const [fontSize, setFontSize] = useState(15);
+  const [typedPlaceholder, setTypedPlaceholder] = useState("");
   const { theme, toggleTheme, isDay } = useTheme();
   const T = THEMES[theme];
 
   useEffect(() => {
     document.documentElement.style.fontSize = fontSize + "px";
   }, [fontSize]);
+
+  // ─── Typewriter placeholder ───────────────────────────────────────────────
+  useEffect(() => {
+    const PHRASES = [
+      "Comme je traverse une phase difficile, y a-t-il un sens à cette épreuve ?",
+      "Je me sens en besoin d'améliorer ma vie. Comment agir en ce sens ?",
+      "Mon couple a changé, comment vivre cette transition ?",
+      "Comment trouver la paix intérieure quand tout s'accélère autour de moi ?",
+      "Je ressens un vide existentiel, par où commencer ?",
+      "Comment distinguer l'intuition de la peur ?",
+    ];
+
+    let phraseIndex = 0;
+    let charIndex = 0;
+    let isDeleting = false;
+    let timeout;
+
+    const type = () => {
+      const current = PHRASES[phraseIndex];
+
+      if (!isDeleting) {
+        setTypedPlaceholder(current.slice(0, charIndex + 1));
+        charIndex++;
+        if (charIndex === current.length) {
+          // Pause en fin de phrase avant d'effacer
+          timeout = setTimeout(() => { isDeleting = true; type(); }, 2800);
+          return;
+        }
+        timeout = setTimeout(type, 45);
+      } else {
+        setTypedPlaceholder(current.slice(0, charIndex - 1));
+        charIndex--;
+        if (charIndex === 0) {
+          isDeleting = false;
+          phraseIndex = (phraseIndex + 1) % PHRASES.length;
+          timeout = setTimeout(type, 500);
+          return;
+        }
+        timeout = setTimeout(type, 18);
+      }
+    };
+
+    timeout = setTimeout(type, 1200);
+    return () => clearTimeout(timeout);
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -668,7 +714,7 @@ export default function App() {
 
         <div style={styles.inputArea}>
           <div style={{ ...styles.inputWrap, background: isDay ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.1)", border: `1px solid ${isDay ? "rgba(90,62,8,0.35)" : "rgba(200,160,80,0.35)"}` }} className="input-glow">
-            <textarea style={{ ...styles.textarea, color: isDay ? "#1a1208" : "#ffffff" }} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKey} placeholder="Posez votre question ou partagez ce qui vous habite..." rows={2} disabled={loading} />
+            <textarea style={{ ...styles.textarea, color: isDay ? "#1a1208" : "#ffffff" }} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKey} placeholder={typedPlaceholder} rows={2} disabled={loading} />
             <button style={{ ...styles.sendBtn, opacity: input.trim() && !loading ? 1 : 0.35 }} className="send-btn" onClick={() => sendMessage()} disabled={!input.trim() || loading}>✦</button>
             <a href="/vocal" style={{ ...styles.vocalBtn, background: isDay ? "rgba(90,62,8,0.12)" : "rgba(200,160,80,0.08)", border: `1px solid ${isDay ? "rgba(90,62,8,0.4)" : "rgba(200,160,80,0.2)"}` }} className="vocal-btn" title="Mode vocal NOVA">🎤</a>
           </div>
@@ -811,7 +857,8 @@ const css = `
   @keyframes dotPulse { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
   .cursor-blink { animation: blink 0.8s step-end infinite; color: #d4a84b; }
   @keyframes blink { from, to { opacity: 1; } 50% { opacity: 0; } }
-  input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.45); }
+  input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.55); }
+  [data-theme="day"] textarea::placeholder { color: rgba(26,18,8,0.45) !important; }
   input:focus { border-color: rgba(200,160,80,0.5) !important; }
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
