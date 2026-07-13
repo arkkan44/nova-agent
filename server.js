@@ -42,16 +42,6 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
-// ─── POST-TRAITEMENT TEXTE MÉDITATION ────────────────────────────────────────
-// Remplace les ... par des pauses SSML pour ralentir naturellement la voix
-const addMeditationPauses = (text) => {
-  return text
-    .replace(/\.\.\./g, '<break time="2s"/>')   // ... → pause 2 secondes
-    .replace(/\. /g, '.<break time="1s"/> ')     // Fin de phrase → pause 1 seconde
-    .replace(/,\s/g, ',<break time="0.5s"/> ')   // Virgule → pause 0.5 seconde
-    .trim();
-};
-
 // ─── CHAT ────────────────────────────────────────────────────────────────────
 app.post("/api/chat", async (req, res) => {
   try {
@@ -60,7 +50,7 @@ app.post("/api/chat", async (req, res) => {
     const directives = loadDirectives();
     let finalSystem = system;
     if (directives) finalSystem = system + "\n\n## Directives permanentes :\n" + directives;
-    const response = await client.messages.create({ model: "claude-sonnet-4-20250514", max_tokens: 1000, system: finalSystem, messages });
+    const response = await client.messages.create({ model: "claude-sonnet-4-6", max_tokens: 1000, system: finalSystem, messages });
     res.json(response);
   } catch (error) { console.error("Erreur chat:", error.message); res.status(500).json({ error: "Erreur serveur" }); }
 });
@@ -126,8 +116,6 @@ app.post("/api/speak-meditation", async (req, res) => {
     const { text } = req.body;
     if (!text) return res.status(400).json({ error: "Texte manquant" });
 
-    const processedText = addMeditationPauses(text);
-
     const response = await fetch("https://api.openai.com/v1/audio/speech", {
       method: "POST",
       headers: {
@@ -137,9 +125,9 @@ app.post("/api/speak-meditation", async (req, res) => {
       body: JSON.stringify({
         model: "tts-1-hd",
         voice: "onyx",
-        input: processedText,
+        input: text,
         speed: 1.0,
-        instructions: "Speak in a slow, deeply calm and spiritual tone. Honour every pause and silence. Your voice is deep, warm and enveloping, like a wise guide leading someone into profound inner stillness."
+        instructions: "Speak in a slow, deeply calm and spiritual tone. Pause gently at each ellipsis. Breathe between sentences. Your voice is warm, enveloping, like a guide leading someone into deep inner peace."
       }),
     });
 
@@ -177,16 +165,15 @@ app.get("/api/speak-meditation-intro", async (req, res) => {
       return res.send(introAudioCache);
     }
     const INTRO_TEXT = "Installez-vous confortablement... Fermez doucement les yeux... Laissez votre corps s'alourdir, s'abandonner... Vous êtes en sécurité... NOVA est là, avec vous... Respirez... simplement... profondément... Laissez chaque souffle vous porter un peu plus loin... vers l'intérieur... vers ce silence qui vous attend... toujours là... toujours présent... Dans quelques instants... votre méditation va commencer...";
-    const processedIntro = addMeditationPauses(INTRO_TEXT);
     const response = await fetch("https://api.openai.com/v1/audio/speech", {
       method: "POST",
       headers: { "Authorization": "Bearer " + process.env.OPENAI_API_KEY, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "tts-1-hd",
         voice: "onyx",
-        input: processedIntro,
+        input: INTRO_TEXT,
         speed: 1.0,
-        instructions: "Speak in a slow, deeply calm and spiritual tone. Honour every pause and silence. Your voice is deep, warm and enveloping, like a wise guide leading someone into profound inner stillness."
+        instructions: "Speak in a slow, deeply calm and spiritual tone. Pause gently at each ellipsis. Breathe between sentences. Your voice is warm, enveloping, like a guide leading someone into deep inner peace."
       }),
     });
     if (!response.ok) return res.status(500).json({ error: "Erreur intro" });
@@ -230,7 +217,7 @@ app.post("/api/send-summary", async (req, res) => {
     const { data: conv } = await supabase.from("conversations").select("title").eq("id", conversation_id).single();
     const transcript = msgs.map(m => `${m.role === "user" ? "Vous" : "NOVA"}: ${m.content}`).join("\n\n");
     const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514", max_tokens: 500,
+      model: "claude-sonnet-4-6", max_tokens: 500,
       messages: [{ role: "user", content: `Tu es NOVA. Un utilisateur souhaite recevoir par email l'essence de sa conversation avec toi.\n\nVoici la conversation :\n${transcript}\n\nRédige un résumé personnel, chaleureux et subtil (10-15 lignes max).\n- Commence par une phrase qui rappelle le cœur de ce qui a été exploré\n- Mets en valeur les insights les plus profonds qui ont émergé\n- Termine par une invitation à continuer ce chemin intérieur\n- Écris à la deuxième personne\n- Ton sobre, profond, sans clichés new age\n- En français` }]
     });
     const summary = response.content?.[0]?.text || "Résumé indisponible.";
@@ -300,7 +287,7 @@ app.get("/api/admin/conversation-summary/:convId", requireAdmin, async (req, res
     const { data: msgs } = await supabase.from("messages").select("*").eq("conversation_id", req.params.convId).order("created_at", { ascending: true });
     if (!msgs || msgs.length === 0) return res.json({ summary: "Conversation vide.", messages: [] });
     const transcript = msgs.map(m => `${m.role === "user" ? "Utilisateur" : "NOVA"}: ${m.content}`).join("\n");
-    const response = await client.messages.create({ model: "claude-sonnet-4-20250514", max_tokens: 300, messages: [{ role: "user", content: `Résume en 3-4 phrases cette conversation :\n\n${transcript}` }] });
+    const response = await client.messages.create({ model: "claude-sonnet-4-6", max_tokens: 300, messages: [{ role: "user", content: `Résume en 3-4 phrases cette conversation :\n\n${transcript}` }] });
     res.json({ summary: response.content?.[0]?.text || "Résumé indisponible.", messages: msgs });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -336,7 +323,7 @@ app.post("/api/memory/update", async (req, res) => {
       : "Voici une conversation avec un utilisateur de NOVA :\n" + transcript + "\n\nRésume ce qui est utile pour personnaliser les futures conversations : sujets importants, émotions exprimées, questions récurrentes, évolutions spirituelles, préoccupations. Maximum 15 lignes. En français.";
 
     const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514", max_tokens: 400,
+      model: "claude-sonnet-4-6", max_tokens: 400,
       messages: [{ role: "user", content: prompt }]
     });
 
